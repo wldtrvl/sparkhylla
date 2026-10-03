@@ -168,11 +168,13 @@ export function feedbackPrompt(
   const transcript = history.map((h) => `${h.role === "tutor" ? "TUTOR" : "LEARNER"}: ${h.text}`).join("\n");
   return {
     id: "talk_feedback",
-    version: 1,
+    version: 2,
     system:
       `You are a warm, precise language teacher writing short feedback after a spoken role-play. ${LEARNER(s.lang, s.uiLang, s.level)}\n` +
       `Teaching rules: praise specifically; choose at most 2 fixes — the ones that matter most for being understood or that recur; ` +
-      `for each fix write a HINT that helps her find the correction herself (do not reveal the answer in the hint); ` +
+      `for each fix write a HINT (max 15 words) that points her to WHERE to look — the word or part of the sentence — ` +
+      `without stating the rule or the correct form, so she can find the fix herself (good: "Посмотрите, где стоит «ikke» после «fordi»"; ` +
+      `bad: "«ikke» ставится перед глаголом"); ` +
       `write everything for her in ${uiName(s.uiLang)}, except "said", "correction" and phrases, which are in ${langName(s.lang)}.`,
     messages: [
       {
