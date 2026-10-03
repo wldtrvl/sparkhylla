@@ -1,5 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/lib/env";
+import { geminiThinking } from "@/lib/ai/providers";
 import { adminClient } from "@/lib/supabase/admin";
 
 export interface Transcript {
@@ -26,7 +27,9 @@ async function openaiStt(audio: Blob, lang: Lang): Promise<string> {
 
 async function geminiStt(audio: Blob, lang: Lang): Promise<string> {
   const b64 = Buffer.from(await audio.arrayBuffer()).toString("base64");
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+  const model = serverEnv.geminiSttModel();
+  const thinking = geminiThinking(model);
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": serverEnv.googleKey() },
     body: JSON.stringify({
@@ -44,7 +47,7 @@ async function geminiStt(audio: Blob, lang: Lang): Promise<string> {
           ],
         },
       ],
-      generationConfig: { temperature: 0, thinkingConfig: { thinkingBudget: 0 } },
+      generationConfig: thinking ? { thinkingConfig: thinking } : {},
     }),
   });
   if (!res.ok) throw new Error(`Gemini STT HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -54,7 +57,7 @@ async function geminiStt(audio: Blob, lang: Lang): Promise<string> {
 
 const STT: Record<string, { available: () => boolean; run: (a: Blob, l: Lang) => Promise<string>; model: string; perMinute: number | null }> = {
   openai: { available: () => !!serverEnv.openaiKey(), run: openaiStt, model: "gpt-4o-mini-transcribe", perMinute: 0.003 },
-  google: { available: () => !!serverEnv.googleKey(), run: geminiStt, model: "gemini-2.5-flash", perMinute: null },
+  google: { available: () => !!serverEnv.googleKey(), run: geminiStt, model: "gemini", perMinute: null },
 };
 
 export function sttAvailable(): boolean {
@@ -71,14 +74,14 @@ export async function transcribe(audio: Blob, lang: Lang, userId: string, durati
     try {
       const text = await p.run(audio, lang);
       await adminClient().from("speech_calls").insert({
-        user_id: userId, kind: "stt", provider: name, model: p.model, lang, units: durationSec,
+        user_id: userId, kind: "stt", provider: name, model: name === "google" ? serverEnv.geminiSttModel() : p.model, lang, units: durationSec,
         cost_usd: p.perMinute != null ? (durationSec / 60) * p.perMinute : null, latency_ms: Date.now() - started, ok: true,
       });
       return { text, provider: name };
     } catch (e) {
       lastErr = e;
       await adminClient().from("speech_calls").insert({
-        user_id: userId, kind: "stt", provider: name, model: p.model, lang, units: durationSec,
+        user_id: userId, kind: "stt", provider: name, model: name === "google" ? serverEnv.geminiSttModel() : p.model, lang, units: durationSec,
         latency_ms: Date.now() - started, ok: false, error: e instanceof Error ? e.message.slice(0, 400) : String(e),
       });
     }

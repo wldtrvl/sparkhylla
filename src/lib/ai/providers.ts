@@ -63,22 +63,53 @@ export const anthropic: ProviderAdapter = {
   },
 };
 
+/**
+ * Gemini thinking controls differ by generation: 2.5 uses thinkingBudget (0 = off);
+ * 3.x uses thinkingLevel and cannot be fully disabled — "minimal" where supported, else "low".
+ */
+export function geminiThinking(model: string): Record<string, unknown> | undefined {
+  if (/^gemini-2\.5-flash/.test(model)) return { thinkingBudget: 0 };
+  if (/^gemini-3\.(6-flash|5-flash-lite|1-flash-lite)/.test(model)) return { thinkingLevel: "minimal" };
+  if (/^gemini-3/.test(model)) return { thinkingLevel: "low" };
+  return undefined;
+}
+
+async function geminiGenerate(model: string, body: Record<string, unknown>, signal?: AbortSignal) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const headers = { "x-goog-api-key": serverEnv.googleKey() };
+  try {
+    return await postJson(url, headers, body, signal);
+  } catch (e) {
+    // If a model rejects the thinking setting, retry once without it rather than failing the task.
+    const gc = body.generationConfig as Record<string, unknown> | undefined;
+    if (e instanceof ProviderError && e.status === 400 && gc?.thinkingConfig && /thinking/i.test(e.message)) {
+      const { thinkingConfig: _drop, ...rest } = gc;
+      void _drop;
+      return postJson(url, headers, { ...body, generationConfig: rest }, signal);
+    }
+    throw e;
+  }
+}
+
 export const google: ProviderAdapter = {
   name: "google",
   available: () => !!serverEnv.googleKey(),
   async complete(req: CompletionRequest): Promise<CompletionResult> {
-    const data = await postJson(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(req.model)}:generateContent`,
-      { "x-goog-api-key": serverEnv.googleKey() },
+    const thinking = req.lowLatency ? geminiThinking(req.model) : undefined;
+    const data = await geminiGenerate(
+      req.model,
       {
         systemInstruction: req.system ? { parts: [{ text: req.system }] } : undefined,
         contents: req.messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
         generationConfig: {
-          maxOutputTokens: req.maxTokens,
-          temperature: req.temperature,
+          // Gemini counts thinking tokens against maxOutputTokens; give thinking models headroom
+          // so the visible answer isn't cut off. Only tokens actually used are billed.
+          maxOutputTokens: /^gemini-(2\.5|3)/.test(req.model) ? req.maxTokens + 4096 : req.maxTokens,
+          // Google advises leaving Gemini 3 at its default temperature; lower values can cause repetition.
+          temperature: /^gemini-3/.test(req.model) ? undefined : req.temperature,
           ...(req.json ? { responseMimeType: "application/json" } : {}),
-          // Flash models think by default; for short structured tasks that only adds latency and cost.
-          ...(req.lowLatency && /flash/.test(req.model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+          // Fast path for short structured tasks: less thinking = lower latency and cost.
+          ...(thinking ? { thinkingConfig: thinking } : {}),
         },
       },
       req.signal,

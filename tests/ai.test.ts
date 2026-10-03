@@ -78,3 +78,20 @@ describe("execute", () => {
     ok.mockRestore();
   });
 });
+
+import { normalizeSupabaseUrl } from "@/lib/env";
+import { geminiThinking } from "@/lib/ai/providers";
+
+describe("config hygiene", () => {
+  it("normalises pasted Supabase URLs", () => {
+    expect(normalizeSupabaseUrl("https://abc.supabase.co/rest/v1/")).toBe("https://abc.supabase.co");
+    expect(normalizeSupabaseUrl(" https://abc.supabase.co/ ")).toBe("https://abc.supabase.co");
+    expect(normalizeSupabaseUrl("https://abc.supabase.co")).toBe("https://abc.supabase.co");
+  });
+  it("uses the right thinking control per Gemini generation", () => {
+    expect(geminiThinking("gemini-2.5-flash")).toEqual({ thinkingBudget: 0 });
+    expect(geminiThinking("gemini-3.1-flash-lite")).toEqual({ thinkingLevel: "minimal" });
+    expect(geminiThinking("gemini-3.8-flash")).toEqual({ thinkingLevel: "low" });
+    expect(geminiThinking("other")).toBeUndefined();
+  });
+});

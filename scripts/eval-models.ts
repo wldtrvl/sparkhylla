@@ -31,8 +31,9 @@ import type { PromptSpec, Route, Task } from "@/lib/ai/types";
 const DEFAULT_MODELS: Route[] = [
   { provider: "anthropic", model: "claude-haiku-4-5-20251001", weight: 1 },
   { provider: "anthropic", model: "claude-sonnet-5-5", weight: 1 },
-  { provider: "google", model: "gemini-2.5-flash", weight: 1 },
-  { provider: "google", model: "gemini-2.5-flash-lite", weight: 1 },
+  { provider: "google", model: "gemini-3.8-flash", weight: 1 },
+  { provider: "google", model: "gemini-3.1-flash-lite", weight: 1 },
+  { provider: "google", model: "gemini-3.5-flash-lite", weight: 1 },
 ];
 
 const doctor: ScenarioCtx = {
@@ -147,7 +148,12 @@ function modelsFromEnv(): Route[] {
 async function main() {
   const models = modelsFromEnv().filter((m) => adapters[m.provider].available());
   if (!models.length) throw new Error("No models with API keys. Set ANTHROPIC_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY in .env.local");
-  const judge: Route = process.env.EVAL_JUDGE ? { ...JSON.parse(process.env.EVAL_JUDGE), weight: 1 } : { provider: "anthropic", model: "claude-sonnet-5-5", weight: 1 };
+  // Judge: EVAL_JUDGE, else Claude Sonnet if that key exists, else Gemini 3.1 Pro.
+  const judge: Route = process.env.EVAL_JUDGE
+    ? { ...JSON.parse(process.env.EVAL_JUDGE), weight: 1 }
+    : adapters.anthropic.available()
+      ? { provider: "anthropic", model: "claude-sonnet-5-5", weight: 1 }
+      : { provider: "google", model: "gemini-3.1-pro-preview", weight: 1 };
   const judgeOn = adapters[judge.provider].available();
   const runs = Number(process.env.EVAL_RUNS ?? 1);
   const results: Record<string, unknown>[] = [];

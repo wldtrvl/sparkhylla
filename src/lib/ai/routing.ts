@@ -12,16 +12,18 @@ import type { Provider, Route, Task } from "./types";
 
 const HAIKU = "claude-haiku-4-5-20251001";
 const SONNET = "claude-sonnet-5-5";
-const FLASH = "gemini-2.5-flash";
+// Gemini: Flash for conversation and feedback, Flash-Lite for short lookups (stable ids, Oct 2026)
+const FLASH = "gemini-3.8-flash";
+const LITE = "gemini-3.1-flash-lite";
 
 export const DEFAULT_ROUTES: Record<Task, Route[]> = {
   gloss: [
     { provider: "anthropic", model: HAIKU, weight: 1 },
-    { provider: "google", model: FLASH, weight: 0 },
+    { provider: "google", model: LITE, weight: 0 },
   ],
   talk_open: [
     { provider: "anthropic", model: HAIKU, weight: 1 },
-    { provider: "google", model: FLASH, weight: 0 },
+    { provider: "google", model: LITE, weight: 0 },
   ],
   tutor_turn: [
     { provider: "anthropic", model: SONNET, weight: 1 },
@@ -29,7 +31,7 @@ export const DEFAULT_ROUTES: Record<Task, Route[]> = {
   ],
   talk_help: [
     { provider: "anthropic", model: HAIKU, weight: 1 },
-    { provider: "google", model: FLASH, weight: 0 },
+    { provider: "google", model: LITE, weight: 0 },
   ],
   talk_feedback: [
     { provider: "anthropic", model: SONNET, weight: 1 },

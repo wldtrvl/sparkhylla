@@ -29,13 +29,15 @@ Next.js 16 (App Router, TypeScript)  ──  Supabase (Postgres + Auth + Storage
         └─ scripts/           eval-models (offline model comparison), book importers
 ```
 
+**Defaults:** Claude (Haiku 4.5 for lookups, Sonnet 5.5 for conversation) when `ANTHROPIC_API_KEY` is set; otherwise Gemini (3.1 Flash-Lite for lookups, 3.8 Flash for conversation and feedback). Speech-to-text uses OpenAI if keyed, else Gemini (`GEMINI_STT_MODEL`).
+
 **Changing models without a deploy:** insert rows into `model_routes`:
 
 ```sql
 -- 50/50 test of two models on word glosses
 insert into model_routes (task, provider, model, weight) values
   ('gloss', 'anthropic', 'claude-haiku-4-5-20251001', 1),
-  ('gloss', 'google',    'gemini-2.5-flash',          1);
+  ('gloss', 'google',    'gemini-3.1-flash-lite',     1);
 ```
 
 Tasks are `gloss`, `talk_open`, `tutor_turn`, `talk_help`, `talk_feedback` and `explain`. Each call is assigned by weight and recorded in `llm_calls.variant`; the view `v_model_comparison` and the coach page compare latency, cost and error rate. Routes are re-read every 60 s. Set `active = false` to stop a route.
@@ -94,7 +96,7 @@ When you change a prompt, bump its `version` in `prompts.ts`. You can then compa
 | Vercel Hobby | $0 (personal, non-commercial use) |
 | Supabase Free | $0. Pauses after 7 days without activity and has no backups; Pro is $25/month for daily backups |
 | AI (Claude Haiku 4.5 + Sonnet 5.5 defaults) | roughly $5–10/month |
-| AI (all tasks on Gemini 2.5 Flash) | roughly $1–3/month |
+| AI on Gemini (3.1 Flash-Lite for lookups, 3.8 Flash for conversation) | roughly $2–5/month; 3.8 Flash doubles in price on 1 Jan 2027 |
 | Speech-to-text (gpt-4o-mini-transcribe, $0.003/min) | well under $1/month |
 | Text-to-speech (Google WaveNet; free tier 4M characters/month) | usually $0; cached audio is reused |
 
