@@ -2,8 +2,8 @@
  * Offline model comparison on fixed test cases.
  *
  *   npm run eval                                  # every model in EVAL_MODELS below that has an API key
- *   EVAL_MODELS='[{"provider":"google","model":"gemini-2.5-flash"}]' npm run eval
- *   EVAL_JUDGE='{"provider":"anthropic","model":"claude-sonnet-5-5"}' npm run eval   # judge model (optional, default Sonnet)
+ *   EVAL_MODELS='[{"provider":"google","model":"gemini-3.8-flash"}]' npm run eval
+ *   EVAL_JUDGE='{"provider":"anthropic","model":"claude-sonnet-5-5"}' npm run eval   # judge (default: Sonnet, or gemini-3.1-pro-preview without an Anthropic key)
  *
  * For each case × model it records: valid JSON?, latency, tokens, cost, the output, and a 1–5 judge score
  * with a reason. Results go to eval-results/<timestamp>.json and .md. The judge is a model too — read the
