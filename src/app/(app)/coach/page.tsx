@@ -28,7 +28,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
   const since7 = clock.daysAgo(7);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  const [act, words, reviews, convs, fb, llm, speech, models, events, vitals, errors] = await Promise.all([
+  const [act, words, reviews, convs, fb, llm, speech, models, events, vitals, errors, ratings] = await Promise.all([
     s.supabase.rpc("daily_activity", { p_user: uid, p_since: since30.slice(0, 10) }),
     s.supabase.from("words").select("status,reps,lang,created_at").eq("user_id", uid),
     s.supabase.from("reviews").select("rating,mode,auto_correct,created_at").eq("user_id", uid).gte("created_at", since7),
@@ -40,7 +40,15 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
     s.supabase.from("events").select("type,props,created_at").eq("user_id", uid).neq("type", "activity.heartbeat").neq("type", "perf.vital").order("created_at", { ascending: false }).limit(40),
     s.supabase.from("events").select("props").eq("user_id", uid).eq("type", "perf.vital").gte("created_at", since7).limit(5000),
     s.supabase.from("app_errors").select("created_at,path,message,route_type").order("created_at", { ascending: false }).limit(10),
+    s.supabase.from("events").select("props,created_at").eq("user_id", uid).eq("type", "read.rate").order("created_at", { ascending: false }).limit(30),
   ]);
+  const rated = (ratings.data ?? []).map((e) => {
+    const p = asRecord(e.props);
+    return { textId: String(p.textId), rating: String(p.rating), at: e.created_at };
+  });
+  const ratedIds = [...new Set(rated.map((x) => x.textId))];
+  const { data: ratedTexts } = ratedIds.length ? await s.supabase.from("texts").select("id,title,author,lang").in("id", ratedIds) : { data: [] };
+  const textById = new Map((ratedTexts ?? []).map((t) => [t.id, t]));
 
   const days = clock.dayKeys(30);
   const minutesByDay = new Map(((act.data ?? []) as DailyActivity[]).map((d) => [String(d.day), Number(d.minutes)]));
@@ -175,6 +183,28 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
       </div>
 
       <section className="card">
+        <h2 className="h2">Понравилось ли прочитанное</h2>
+        {rated.length ? (
+          <div className="stack small" style={{ gap: 6 }}>
+            {rated.map((x, i) => {
+              const t = textById.get(x.textId);
+              return (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "110px 80px 1fr", gap: 8 }}>
+                  <span className="muted num">{fmtTime.format(new Date(x.at))}</span>
+                  <b>{RATING[x.rating] ?? x.rating}</b>
+                  <span>
+                    {t ? <Link href={`/read/${t.id}`}>{t.title}</Link> : "текст удалён"} {t && <span className="muted">· {t.author}</span>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="small muted">Оценок пока нет. Они появляются, когда она дочитывает текст и отвечает на «Понравилось?».</p>
+        )}
+      </section>
+
+      <section className="card">
         <h2 className="h2">Сравнение моделей</h2>
         <p className="small muted">Все вызовы AI с задачей, моделью, задержкой и стоимостью. Чтобы сравнить модели на реальных занятиях, добавьте в model_routes две строки на одну задачу с весами (см. README).</p>
         <div className="table-wrap">
@@ -257,6 +287,8 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
     </>
   );
 }
+
+const RATING: Record<string, string> = { loved: "очень", ok: "так себе", not_mine: "не моё" };
 
 function summarizeProps(p: Record<string, unknown>) {
   const keys = ["term", "answer", "scenario", "goalsDone", "page", "variant", "dueCount"];
