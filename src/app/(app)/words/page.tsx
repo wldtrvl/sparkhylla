@@ -8,7 +8,7 @@ export default async function WordsPage() {
   const now = new Date().toISOString();
   const [due, all] = await Promise.all([
     s.supabase.from("words").select("id,term,lemma,translation,context,note,kind").eq("user_id", s.user.id).eq("lang", lang).eq("status", "learning").lte("due", now).order("due").limit(30),
-    s.supabase.from("words").select("id,term,translation,status,source,due,reps,created_at").eq("user_id", s.user.id).eq("lang", lang).order("created_at", { ascending: false }).limit(2000),
+    s.supabase.from("words").select("id,term,translation,note,status,source,due,reps,created_at").eq("user_id", s.user.id).eq("lang", lang).order("created_at", { ascending: false }).limit(2000),
   ]);
   const words = (all.data ?? []) as WordRow[];
   const learning = words.filter((w) => w.status === "learning").length;

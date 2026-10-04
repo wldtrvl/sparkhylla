@@ -5,6 +5,8 @@ import { libraryFor } from "@/lib/library";
 import { logEvent, requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 
+const WEEKDAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
 function greeting(lang: "no" | "en") {
   const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Oslo" }).format(new Date()));
   if (lang === "en") return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
@@ -60,8 +62,11 @@ export default async function DeskPage() {
         </div>
         <div className="row small muted" style={{ marginLeft: "auto", gap: 6 }} aria-label={`Занятия на этой неделе: ${days.size} из 7 дней`}>
           Неделя:
-          {week.map((d) => (
-            <span key={d} style={{ width: 12, height: 12, borderRadius: "50%", background: days.has(d) ? "var(--cloth)" : "transparent", border: days.has(d) ? 0 : "2px solid #c9b996" }} />
+          {week.map((d, i) => (
+            <span key={d} className={`week-day${i === week.length - 1 ? " today" : ""}`} aria-hidden="true">
+              <span className={days.has(d) ? "dot on" : "dot"} />
+              {WEEKDAY[new Date(`${d}T12:00:00Z`).getUTCDay()]}
+            </span>
           ))}
         </div>
       </div>

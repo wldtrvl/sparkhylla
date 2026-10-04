@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
+import { fetchWithTimeout } from "@/lib/supabase/fetch";
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out
@@ -9,6 +10,7 @@ import { publicEnv } from "@/lib/env";
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+    global: { fetch: fetchWithTimeout(10_000) },
     cookies: {
       getAll() {
         return request.cookies.getAll();

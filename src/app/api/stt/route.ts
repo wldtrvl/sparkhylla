@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   try {
     const t = await transcribe(audio, lang, s.user.id, durationSec);
     logEvent(s, "speech.transcribed", { purpose: String(form.get("purpose") ?? ""), provider: t.provider, seconds: durationSec, chars: t.text.length });
-    return NextResponse.json({ text: t.text });
+    return NextResponse.json({ text: t.text, provider: t.provider });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Не удалось распознать речь. Попробуйте ещё раз." }, { status: 502 });

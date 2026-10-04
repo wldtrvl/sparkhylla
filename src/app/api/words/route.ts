@@ -46,6 +46,38 @@ export async function POST(req: Request) {
   return NextResponse.json({ id: data.id });
 }
 
+const Patch = z.object({
+  id: z.string().uuid(),
+  translation: z.string().trim().max(200).optional(),
+  note: z.string().trim().max(400).nullable().optional(),
+  status: z.enum(["learning", "known"]).optional(),
+});
+
+/** Edit a saved word: fix the translation or note, or move it between learning and known. */
+export async function PATCH(req: Request) {
+  const s = await apiSession();
+  if (isResponse(s)) return s;
+  const b = await parseBody(req, Patch);
+  if (isResponse(b)) return b;
+  const { data: w } = await s.supabase.from("words").select("id,status").eq("id", b.id).eq("user_id", s.user.id).maybeSingle();
+  if (!w) return NextResponse.json({ error: "Слово не найдено." }, { status: 404 });
+  const now = new Date();
+  const update: Record<string, unknown> = { updated_at: now.toISOString() };
+  if (b.translation !== undefined) update.translation = b.translation || null;
+  if (b.note !== undefined) update.note = b.note || null;
+  if (b.status && b.status !== w.status) {
+    update.status = b.status;
+    // back to learning: a fresh card due now; known: out of review
+    const card = b.status === "learning" ? newCard(now) : null;
+    update.fsrs = card;
+    update.due = card ? now.toISOString() : null;
+  }
+  const { error } = await s.supabase.from("words").update(update).eq("id", b.id).eq("user_id", s.user.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  logEvent(s, "word.edit", { id: b.id, fields: Object.keys(update).filter((k) => k !== "updated_at"), from: w.status, to: b.status ?? w.status });
+  return NextResponse.json({ ok: true });
+}
+
 const Del = z.object({ id: z.string().uuid() });
 
 export async function DELETE(req: Request) {

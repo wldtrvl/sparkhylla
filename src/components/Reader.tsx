@@ -1,7 +1,7 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isHeading, paragraphText } from "@/lib/text-format";
-import { speak } from "./audio";
+import { speak, speakToEnd, stopAudio, ttsUrl } from "./audio";
 import { track } from "./tracker";
 
 type Lang = "no" | "en";
@@ -59,9 +59,90 @@ export function Reader(props: {
 
   const texts = useMemo(() => props.paragraphs.map(paragraphText), [props.paragraphs]);
   const paras = useMemo(() => texts.map(pieces), [texts]);
+  const [speaking, setSpeaking] = useState<number | null>(null); // paragraph being read aloud
+  const [phrase, setPhrase] = useState<{ text: string; para: number; x: number; y: number } | null>(null);
+  const glossRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // desktop: the translation opens as a card under (or above) the tapped word; phones: a bottom sheet
+  const [pos, setPos] = useState<{ top: number; left: number; above: boolean } | null>(null);
 
-  async function open(term: string, paragraph: string, key: string) {
+  // Escape or a click outside closes the translation; leaving the page stops reading aloud
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSel(null);
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (t && !t.closest(".gloss, .w, .phrase-btn") && !window.getSelection()?.toString().trim()) setSel(null);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+      stopAudio();
+    };
+  }, []);
+
+  // Touch screens: selecting 2–8 words shows a «Перевести фразу» button next to the selection.
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onChange = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const s = window.getSelection();
+        const text = s?.toString().trim().replace(/\s+/g, " ") ?? "";
+        const n = text ? text.split(" ").length : 0;
+        const host = s?.anchorNode?.parentElement?.closest<HTMLElement>("[data-p]");
+        if (!s || !host || n < 2 || n > 8 || !s.rangeCount) return setPhrase(null);
+        const r = s.getRangeAt(0).getBoundingClientRect();
+        setPhrase({ text, para: Number(host.dataset.p), x: Math.min(Math.max(r.left + r.width / 2, 90), window.innerWidth - 90), y: r.bottom + 10 });
+      }, 350);
+    };
+    document.addEventListener("selectionchange", onChange);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("selectionchange", onChange);
+    };
+  }, []);
+
+  // On a phone the translation opens as a sheet at the bottom: keep the tapped word visible above it.
+  useEffect(() => {
+    if (!sel || !glossRef.current || !window.matchMedia("(max-width: 860px)").matches) return;
+    const word = document.querySelector(`[data-k="${CSS.escape(sel.key)}"]`);
+    const sheetTop = glossRef.current.getBoundingClientRect().top;
+    const b = word?.getBoundingClientRect();
+    if (b && b.bottom > sheetTop - 12) window.scrollBy({ top: b.bottom - sheetTop + 48, behavior: "smooth" });
+  }, [sel, gloss]);
+
+  /** Read the page aloud from paragraph `from`, highlighting each one; the next paragraph's audio is fetched meanwhile. */
+  async function readAloud(from: number) {
+    track("read.listen_page", { textId: props.textId, from });
+    for (let i = from; i < texts.length; i++) {
+      setSpeaking(i);
+      const next = texts.slice(i + 1).find(Boolean);
+      if (next) void ttsUrl(next, props.lang);
+      if (!(await speakToEnd(texts[i], props.lang))) return; // stopped
+    }
+    setSpeaking(null);
+  }
+
+  function stopReading() {
+    stopAudio();
+    setSpeaking(null);
+  }
+
+  function placeNear(anchor: DOMRect | undefined) {
+    const root = rootRef.current?.getBoundingClientRect();
+    if (!anchor || !root || window.matchMedia("(max-width: 860px)").matches) return setPos(null);
+    const width = Math.min(380, root.width);
+    const left = Math.min(Math.max(anchor.left - root.left - 24, 0), root.width - width);
+    const above = window.innerHeight - anchor.bottom < 340 && anchor.top > 340;
+    setPos({ left, above, top: above ? anchor.top - root.top - 10 : anchor.bottom - root.top + 10 });
+  }
+
+  async function open(term: string, paragraph: string, key: string, anchor?: DOMRect) {
     const sentence = sentenceAround(paragraph, term);
+    placeNear(anchor ?? document.querySelector(`[data-k="${CSS.escape(key)}"]`)?.getBoundingClientRect());
     setSel({ term, sentence, key });
     setGloss(null);
     setErr("");
@@ -81,8 +162,9 @@ export function Reader(props: {
   }
 
   function onMouseUp(paragraph: string) {
-    const s = window.getSelection()?.toString().trim() ?? "";
-    if (s && s.split(/\s+/).length >= 2 && s.split(/\s+/).length <= 8) open(s, paragraph, `sel:${s}`);
+    const sel = window.getSelection();
+    const s = sel?.toString().trim() ?? "";
+    if (s && s.split(/\s+/).length >= 2 && s.split(/\s+/).length <= 8) open(s, paragraph, `sel:${s}`, sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : undefined);
   }
 
   async function save(status: "learning" | "known") {
@@ -119,13 +201,40 @@ export function Reader(props: {
   }
 
   return (
-    <div className="split">
-      <div className="wide">
-        <div className="prose" lang={langAttr} style={{ fontSize: "var(--read-size, 21px)" }}>
-          {paras.map((ps, i) => {
-            const Tag = isHeading(props.paragraphs[i]) ? "h2" : "p";
-            return (
-            <div key={i} className="stack" style={{ gap: 6 }}>
+    <div className="reader" ref={rootRef}>
+      <div className="row listen-bar">
+        {speaking == null ? (
+          <button type="button" className="btn soft small" onClick={() => readAloud(0)}>
+            ▶ Слушать страницу
+          </button>
+        ) : (
+          <button type="button" className="btn small" onClick={stopReading}>
+            ■ Остановить
+          </button>
+        )}
+        <span className="small muted reader-tip">
+          Нажмите на <span className="w unknown">выделенное</span> слово — появится перевод. Фразу можно выделить.
+        </span>
+      </div>
+      <div className="prose" lang={langAttr} style={{ fontSize: "var(--read-size, 21px)" }}>
+        {paras.map((ps, i) => {
+          const Tag = isHeading(props.paragraphs[i]) ? "h2" : "p";
+          return (
+            <div key={i} className={`para${speaking === i ? " speaking" : ""}`} data-p={i}>
+              {Tag === "p" && (
+                <button
+                  type="button"
+                  className="para-listen"
+                  aria-label="Слушать абзац"
+                  title="Слушать абзац"
+                  onClick={() => {
+                    track("read.listen", { textId: props.textId, paragraph: i });
+                    readAloud(i);
+                  }}
+                >
+                  ▶
+                </button>
+              )}
               <Tag className={Tag === "h2" ? "prose-heading" : undefined} onMouseUp={() => onMouseUp(texts[i])}>
                 {ps.map((x, j) => {
                   if (!x.word) return <span key={j}>{x.t}</span>;
@@ -136,55 +245,56 @@ export function Reader(props: {
                   return (
                     <span
                       key={j}
+                      data-k={key}
                       className={cls}
                       role={isUnknown ? "button" : undefined}
                       tabIndex={isUnknown ? 0 : undefined}
-                      onClick={() => window.getSelection()?.toString().trim().includes(" ") || open(x.t, texts[i], key)}
-                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(x.t, texts[i], key))}
+                      onClick={(e) => window.getSelection()?.toString().trim().includes(" ") || open(x.t, texts[i], key, e.currentTarget.getBoundingClientRect())}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(x.t, texts[i], key, e.currentTarget.getBoundingClientRect()))}
                     >
                       {x.t}
                     </span>
                   );
                 })}
               </Tag>
-              {Tag === "p" && (
-              <div className="para-tools">
-                <button
-                  type="button"
-                  className="btn soft small"
-                  onClick={() => {
-                    track("read.listen", { textId: props.textId, paragraph: i });
-                    speak(texts[i], props.lang);
-                  }}
-                >
-                  Слушать абзац
-                </button>
-              </div>
-              )}
             </div>
-            );
-          })}
-        </div>
+          );
+        })}
       </div>
 
-      <aside className="side" style={{ position: "sticky", top: 24 }}>
-        {!sel && (
-          <div className="card">
-            <span className="eyebrow">Как читать</span>
-            <p className="small" style={{ lineHeight: 1.55 }}>
-              <span className="w unknown">Выделены</span> слова, которых вы, скорее всего, ещё не знаете. Нажмите на любое слово — появится перевод. Чтобы спросить о фразе, выделите её мышкой.
-            </p>
-            <p className="small muted">Не нужно понимать каждое слово: главное — смысл.</p>
-          </div>
-        )}
-        {sel && (
-          <div className="card" aria-live="polite">
-            <div className="row" style={{ alignItems: "baseline" }}>
-              <b lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 28 }}>
+      {phrase && (
+        <button
+          type="button"
+          className="btn small phrase-btn"
+          style={{ left: phrase.x, top: phrase.y }}
+          onClick={() => {
+            open(phrase.text, texts[phrase.para], `sel:${phrase.text}`, new DOMRect(phrase.x - 40, phrase.y - 30, 80, 20));
+            window.getSelection()?.removeAllRanges();
+            setPhrase(null);
+          }}
+        >
+          Перевести фразу
+        </button>
+      )}
+
+      {sel && (
+          <div
+            className={`card gloss${pos ? " popover" : ""}${pos?.above ? " above" : ""}`}
+            style={pos ? { top: pos.top, left: pos.left } : undefined}
+            ref={glossRef}
+            aria-live="polite"
+            role="dialog"
+            aria-label={`Перевод: ${sel.term}`}
+          >
+            <div className="row" style={{ alignItems: "baseline", flexWrap: "nowrap" }}>
+              <b lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 28, minWidth: 0, overflowWrap: "anywhere" }}>
                 {sel.term}
               </b>
               <button type="button" className="btn soft small" style={{ marginLeft: "auto" }} onClick={() => speak(sel.term, props.lang, { rate: 0.8 })}>
                 Слушать
+              </button>
+              <button type="button" className="gloss-close" aria-label="Закрыть перевод" onClick={() => setSel(null)}>
+                ×
               </button>
             </div>
             {state === "loading" && <span className="muted">Ищу значение…</span>}
@@ -209,7 +319,7 @@ export function Reader(props: {
                   </span>
                 )}
                 {gloss.note && <span className="small muted">{gloss.note}</span>}
-                <span className="small muted" lang={langAttr} style={{ fontFamily: "var(--f-read)", fontStyle: "italic" }}>
+                <span className="small muted gloss-sentence" lang={langAttr} style={{ fontFamily: "var(--f-read)", fontStyle: "italic" }}>
                   «{sel.sentence}»
                 </span>
                 {err && state !== "error" && <span className="error">{err}</span>}
@@ -225,7 +335,6 @@ export function Reader(props: {
             )}
           </div>
         )}
-      </aside>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { aiFailure, parseBody } from "@/lib/api";
 import { glossPrompt, GlossSchema } from "@/lib/ai/prompts";
@@ -42,10 +42,13 @@ export async function POST(req: Request) {
       lowLatency: true,
       prompt: glossPrompt({ lang: body.lang, uiLang: s.profile.ui_lang, level: s.profile.levels[body.lang]?.reading ?? "B1", term, sentence: body.sentence }),
     });
-    await admin.from("gloss_cache").upsert(
-      { lang: body.lang, ui_lang: s.profile.ui_lang, term: term.toLowerCase(), context_hash: contextHash, payload: res.data },
-      { onConflict: "lang,ui_lang,term,context_hash" },
-    );
+    // the cache write happens after she has the answer (once it took 70 s on a stalled connection)
+    after(async () => {
+      const { error } = await admin
+        .from("gloss_cache")
+        .upsert({ lang: body.lang, ui_lang: s.profile.ui_lang, term: term.toLowerCase(), context_hash: contextHash, payload: res.data }, { onConflict: "lang,ui_lang,term,context_hash" });
+      if (error) console.error("gloss_cache upsert failed:", error.message);
+    });
     logEvent(s, "word.gloss", { term, cached: false, variant: res.variant, textId: body.textId });
     return NextResponse.json({ gloss: res.data, cached: false });
   } catch (e) {

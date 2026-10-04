@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { publicEnv, serverEnv } from "@/lib/env";
+import { fetchWithTimeout } from "./fetch";
 
 let admin: SupabaseClient | null = null;
 
@@ -12,6 +13,7 @@ export function adminClient(): SupabaseClient {
   if (!admin) {
     admin = createSupabaseClient(publicEnv.supabaseUrl, serverEnv.supabaseServiceRoleKey(), {
       auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: fetchWithTimeout(20_000) },
     });
   }
   return admin;

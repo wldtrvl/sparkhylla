@@ -2,7 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { checkAnswer, type Verdict } from "@/lib/learning/answer";
 import { sendForTranscript, speak, useRecorder } from "./audio";
+import { RecLevel } from "./RecLevel";
 import { track } from "./tracker";
+
+type Answer = "forgot" | "hard" | "good";
 
 export interface ReviewCard {
   id: string;
@@ -39,6 +42,23 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
   useEffect(() => {
     shownAt.current = Date.now();
   }, [i]);
+
+  // The app suggests a grade from her answer (she can still pick another): correct → «Вспомнила»,
+  // close → «С трудом», wrong or «Не помню» → «Не вспомнила». Keys 1/2/3 grade; Enter takes the suggestion.
+  const suggested: Answer | null = gaveUp ? "forgot" : verdict === "correct" ? "good" : verdict === "close" ? "hard" : verdict === "wrong" ? "forgot" : null;
+  useEffect(() => {
+    if (!revealed || busy) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "BUTTON", "SELECT"].includes(e.target.tagName)) return;
+      const byKey: Record<string, Answer> = { "1": "forgot", "2": "hard", "3": "good" };
+      const a = e.key === "Enter" ? suggested : byKey[e.key];
+      if (!a || (gaveUp && a !== "forgot")) return;
+      e.preventDefault();
+      choose(a, "key");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   if (!queue.length)
     return (
@@ -97,7 +117,12 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
     speak(card.term, lang, { rate: 0.85 });
   }
 
-  async function grade(answer: "forgot" | "hard" | "good") {
+  function choose(answer: Answer, via: "click" | "key") {
+    track("review.self_grade", { verdict, suggested, chosen: answer, via, gaveUp });
+    grade(answer);
+  }
+
+  async function grade(answer: Answer) {
     setBusy(true);
     setMsg("");
     const r = await fetch("/api/review", {
@@ -169,6 +194,7 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
               <input id="answer" className="input" lang={langAttr} autoComplete="off" value={given} onChange={(e) => setGiven(e.target.value)} placeholder="ваш ответ…" />
             </form>
           </div>
+          {rec.recording && <RecLevel level={rec.level} seconds={rec.seconds} />}
           {(msg || rec.error) && <p className="error">{msg || rec.error}</p>}
           <div className="row">
             <button type="button" className="btn ghost" onClick={giveUp} disabled={busy}>
@@ -202,28 +228,20 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
           {msg && <p className="error">{msg}</p>}
           {gaveUp ? (
             <div className="row">
-              <button type="button" className="btn" onClick={() => grade("forgot")} disabled={busy}>
-                Запомнила, дальше
+              <button type="button" className="btn suggested" onClick={() => choose("forgot", "click")} disabled={busy}>
+                Запомнила, дальше <kbd className="key-hint">Enter</kbd>
               </button>
             </div>
           ) : (
           <div className="row">
-            <button type="button" className="btn ghost" onClick={() => grade("forgot")} disabled={busy}>
-              Не вспомнила
+            <button type="button" className={`btn ghost${suggested === "forgot" ? " suggested" : ""}`} onClick={() => choose("forgot", "click")} disabled={busy}>
+              <kbd className="key-hint">1</kbd> Не вспомнила
             </button>
-            <button type="button" className="btn soft" onClick={() => grade("hard")} disabled={busy}>
-              С трудом
+            <button type="button" className={`btn soft${suggested === "hard" ? " suggested" : ""}`} onClick={() => choose("hard", "click")} disabled={busy}>
+              <kbd className="key-hint">2</kbd> С трудом
             </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                track("review.self_grade", { verdict, chosen: "good" });
-                grade("good");
-              }}
-              disabled={busy}
-            >
-              Вспомнила
+            <button type="button" className={`btn${suggested === "good" ? " suggested" : ""}`} onClick={() => choose("good", "click")} disabled={busy}>
+              <kbd className="key-hint">3</kbd> Вспомнила
             </button>
           </div>
           )}

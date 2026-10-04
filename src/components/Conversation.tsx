@@ -2,21 +2,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { speak, stopAudio, useRecorder } from "./audio";
+import { speak, stopAudio, transcribeRecording, useRecorder } from "./audio";
+import { RecLevel } from "./RecLevel";
 import { track } from "./tracker";
 
 interface Props {
   scenario: { id: string; title: string; lang: "no" | "en"; level: string; persona: string; goals: { id: string; ru: string }[] };
   serverStt: boolean;
 }
-type Line = { role: "tutor" | "learner"; text: string; notes?: number };
+type Line = { role: "tutor" | "learner"; text: string; notes?: number; pending?: boolean };
 
 export function Conversation({ scenario, serverStt }: Props) {
   const router = useRouter();
   const [convId, setConvId] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
-  const [busy, setBusy] = useState<"" | "start" | "turn" | "help" | "finish">("start");
+  const [busy, setBusy] = useState<"" | "start" | "hearing" | "turn" | "help" | "finish">("start");
   const [err, setErr] = useState("");
   const [help, setHelp] = useState<{ phrase: string; translation: string } | null>(null);
   const [typed, setTyped] = useState("");
@@ -44,24 +45,45 @@ export function Conversation({ scenario, serverStt }: Props) {
     })();
   }, [scenario.id, scenario.lang]);
 
+  /**
+   * One turn. Speech is recognised first, so her sentence shows at once; then the reply is requested.
+   * Typed text goes straight to the reply.
+   */
   const sendTurn = useCallback(
     async (payload: { audio?: Blob; durationMs?: number; text?: string }) => {
       if (!convId) return;
-      setBusy("turn");
       setErr("");
       setHelp(null);
+      let text = payload.text ?? "";
+      let source = "typed";
+      if (payload.audio) {
+        setBusy("hearing");
+        setLines((l) => [...l, { role: "learner", text: "…", pending: true }]);
+        try {
+          const t = await transcribeRecording({ blob: payload.audio, durationMs: payload.durationMs ?? 0 }, scenario.lang, "talk");
+          text = t.text.trim();
+          source = t.provider;
+          if (!text) throw new Error("Я ничего не услышала. Скажите ещё раз, чуть громче.");
+        } catch (e) {
+          setLines((l) => l.filter((x) => !x.pending));
+          setErr(e instanceof Error ? e.message : "Не удалось распознать речь.");
+          setBusy("");
+          return;
+        }
+        setLines((l) => l.map((x) => (x.pending ? { role: "learner", text } : x)));
+      } else setLines((l) => [...l, { role: "learner", text }]);
+      setBusy("turn");
       const fd = new FormData();
       fd.append("conversationId", convId);
-      if (payload.audio) {
-        fd.append("audio", payload.audio, "speech");
-        fd.append("durationMs", String(payload.durationMs ?? 0));
-      }
-      if (payload.text) fd.append("text", payload.text);
+      fd.append("text", text);
+      fd.append("source", source);
+      fd.append("durationMs", String(payload.durationMs ?? 0));
       try {
         const r = await fetch("/api/talk/turn", { method: "POST", body: fd });
         const d = await r.json();
         if (!r.ok) throw new Error(d.error);
-        setLines((l) => [...l, { role: "learner", text: d.learnerText, notes: d.noteCount }, { role: "tutor", text: d.reply }]);
+        // the server's copy of her sentence is the one that was saved; mark it if the tutor noted something
+        setLines((l) => [...l.slice(0, -1), { role: "learner", text: d.learnerText, notes: d.noteCount }, { role: "tutor", text: d.reply }]);
         setGoals(d.goalsDone);
         speak(d.reply, scenario.lang);
       } catch (e) {
@@ -158,7 +180,7 @@ export function Conversation({ scenario, serverStt }: Props) {
       <div className="split">
         <section className="wide card" style={{ gap: 14, padding: 24 }}>
           {lines.map((l, i) => (
-            <div key={i} className={`bubble ${l.role}`} lang={langAttr}>
+            <div key={i} className={`bubble ${l.role}${l.pending ? " pending" : ""}`} lang={langAttr}>
               {l.role === "tutor" && <div className="who">{who}</div>}
               {l.text}
               {l.role === "tutor" && (
@@ -177,7 +199,8 @@ export function Conversation({ scenario, serverStt }: Props) {
             </div>
           ))}
           {busy === "start" && <p className="muted">Собеседник подключается…</p>}
-          {busy === "turn" && <p className="muted">Слушаю и отвечаю…</p>}
+          {busy === "hearing" && <p className="muted">Распознаю вашу фразу…</p>}
+          {busy === "turn" && <p className="muted">{who} отвечает…</p>}
           {err && <p className="error">{err}</p>}
           {rec.error && <p className="error">{rec.error}</p>}
 
@@ -192,6 +215,7 @@ export function Conversation({ scenario, serverStt }: Props) {
                 </button>
                 <div className="stack" style={{ gap: 4 }}>
                   <b>{rec.recording ? "Говорите… нажмите ещё раз, когда закончите" : "Нажмите на микрофон и говорите"}</b>
+                  {rec.recording && <RecLevel level={rec.level} seconds={rec.seconds} />}
                   <span className="small muted">
                     Или удерживайте <kbd>Пробел</kbd>, пока говорите
                   </span>
@@ -228,7 +252,7 @@ export function Conversation({ scenario, serverStt }: Props) {
               <div key={g.id} className="row" style={{ gap: 10, flexWrap: "nowrap" }}>
                 <span
                   aria-hidden="true"
-                  style={{ width: 20, height: 20, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center", fontSize: 12, color: "var(--paper)", background: goals.includes(g.id) ? "var(--ok)" : "transparent", border: goals.includes(g.id) ? 0 : "2px solid #9b8b74" }}
+                  style={{ width: 20, height: 20, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center", fontSize: 12, color: "var(--paper)", background: goals.includes(g.id) ? "var(--ok)" : "transparent", border: goals.includes(g.id) ? 0 : "2px solid var(--muted)" }}
                 >
                   {goals.includes(g.id) ? "✓" : ""}
                 </span>

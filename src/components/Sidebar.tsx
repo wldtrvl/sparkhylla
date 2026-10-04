@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { track } from "./tracker";
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -33,7 +33,26 @@ const ICONS: Record<string, React.ReactNode> = {
     </>
   ),
   coach: <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />,
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="19" cy="12" r="1.6" />
+    </>
+  ),
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+    </>
+  ),
 };
+
+const Icon = ({ name }: { name: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {ICONS[name]}
+  </svg>
+);
 
 /** Switch the active language (Norsk/English); shared by the sidebar and the phone top bar. */
 function useLangSwitch(activeLang: "no" | "en", where: "sidebar" | "mobile") {
@@ -53,15 +72,27 @@ function useLangSwitch(activeLang: "no" | "en", where: "sidebar" | "mobile") {
 export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "en"; isCoach: boolean; levels: string }) {
   const path = usePathname();
   const { pending, switchLang } = useLangSwitch(activeLang, "sidebar");
+  // On a phone the bottom bar shows the four daily sections (short labels); the rest sit under «Ещё».
   const items = [
-    { href: "/", label: "Мой стол", icon: "desk" },
-    { href: "/library", label: "Библиотека", icon: "library" },
-    { href: "/talk", label: "Разговор", icon: "talk" },
-    { href: "/words", label: "Мои слова", icon: "words" },
-    { href: "/grammar", label: "Грамматика", icon: "grammar" },
-    ...(isCoach ? [{ href: "/coach", label: "Помощник", icon: "coach" }] : []),
+    { href: "/", label: "Мой стол", short: "Стол", icon: "desk", primary: true },
+    { href: "/library", label: "Библиотека", short: "Книги", icon: "library", primary: true },
+    { href: "/words", label: "Мои слова", short: "Слова", icon: "words", primary: true },
+    { href: "/talk", label: "Разговор", short: "Разговор", icon: "talk", primary: true },
+    { href: "/grammar", label: "Грамматика", short: "Грамматика", icon: "grammar", primary: false },
+    ...(isCoach ? [{ href: "/coach", label: "Помощник", short: "Помощник", icon: "coach", primary: false }] : []),
   ];
+  const more = [...items.filter((it) => !it.primary), { href: "/settings", label: "Настройки", short: "Настройки", icon: "settings", primary: false }];
   const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreActive = more.some((it) => isActive(it.href));
+
+  // close the «Ещё» sheet on Escape (links in it close it themselves)
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   return (
     <aside className="sidebar">
@@ -71,14 +102,40 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
       </Link>
       <nav className="nav" aria-label="Разделы">
         {items.map((it) => (
-          <Link key={it.href} href={it.href} aria-current={isActive(it.href) ? "page" : undefined}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              {ICONS[it.icon]}
-            </svg>
-            {it.label}
+          <Link key={it.href} href={it.href} className={it.primary ? undefined : "nav-secondary"} aria-current={isActive(it.href) ? "page" : undefined}>
+            <Icon name={it.icon} />
+            <span className="lbl-long">{it.label}</span>
+            <span className="lbl-short">{it.short}</span>
           </Link>
         ))}
+        <button
+          type="button"
+          className="nav-more"
+          aria-expanded={moreOpen}
+          aria-controls="nav-more-sheet"
+          aria-current={moreActive ? "page" : undefined}
+          onClick={() => {
+            if (!moreOpen) track("nav.more_open", { path });
+            setMoreOpen(!moreOpen);
+          }}
+        >
+          <Icon name="more" />
+          <span>Ещё</span>
+        </button>
       </nav>
+      {moreOpen && (
+        <>
+          <div className="sheet-backdrop" onClick={() => setMoreOpen(false)} aria-hidden="true" />
+          <div id="nav-more-sheet" className="more-sheet" role="dialog" aria-label="Другие разделы">
+            {more.map((it) => (
+              <Link key={it.href} href={it.href} aria-current={isActive(it.href) ? "page" : undefined} onClick={() => setMoreOpen(false)}>
+                <Icon name={it.icon} />
+                {it.label}
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
       <div className="sidebar-foot">
         <div className="langswitch" aria-busy={pending}>
           <button type="button" aria-pressed={activeLang === "no"} onClick={() => switchLang("no")}>
