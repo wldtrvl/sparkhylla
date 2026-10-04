@@ -40,7 +40,7 @@ export function htmlToBody(html: string, opts: { headings?: string; root?: strin
 export function textToBody(raw: string): string {
   const text = raw
     .replace(/\r\n?/g, "\n")
-    .replace(/\[(Illustration|Illustrasjon)[^\]]*\]/gi, "")
+    .replace(/\[(Illustration|Illustrasjon|Picture)[^\]]*\]/gi, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

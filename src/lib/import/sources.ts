@@ -57,7 +57,9 @@ export async function draftFromUrl(raw: string, now: Date): Promise<ImportDraft>
 
 /* ---------- Project Gutenberg ---------- */
 
-const tag = (xml: string, name: string) => xml.match(new RegExp(`<${name}[^>]*>([^<]*)</${name}>`))?.[1]?.trim() ?? "";
+const decodeXml = (s: string) =>
+  s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+const tag = (xml: string, name: string) => decodeXml(xml.match(new RegExp(`<${name}[^>]*>([^<]*)</${name}>`))?.[1] ?? "").replace(/\s+/g, " ").trim();
 
 async function gutenberg(u: URL, now: Date): Promise<ImportDraft> {
   const id = u.pathname.match(/\/(?:ebooks|epub|files)\/(\d+)/)?.[1];
@@ -71,19 +73,28 @@ async function gutenberg(u: URL, now: Date): Promise<ImportDraft> {
   if (start < 0 || end < 0) throw new ImportError("Не нашёл начало и конец текста в файле Gutenberg.");
   const language = rdf.match(/<dcterms:language>[\s\S]*?<rdf:value[^>]*>([a-z-]+)<\/rdf:value>/)?.[1] ?? "";
   const lang = language === "en" ? "en" : ["no", "nb", "nn"].includes(language) ? "no" : null;
-  const creators = [...rdf.matchAll(/<dcterms:creator>[\s\S]*?<\/dcterms:creator>/g)].map((m) => m[0]);
+  const agents = (role: string) => [...rdf.matchAll(new RegExp(`<${role}>[\\s\\S]*?<\\/${role}>`, "g"))].map((m) => m[0]);
+  const creators = agents("dcterms:creator");
+  // A translation has its own copyright: the translator must also have died more than 70 years ago.
+  const translators = agents("marcrel:trl");
   const names = creators.map((c) => tag(c, "pgterms:name").replace(/^([^,]+),\s*(.+)$/, "$2 $1"));
-  const deaths = creators.map((c) => Number(tag(c, "pgterms:deathdate")) || null);
+  const rightsHolders = [...creators, ...translators];
+  const deaths = rightsHolders.map((c) => Number(tag(c, "pgterms:deathdate")) || null);
+  const headerTranslator = /^(Translator|Translated by):\s*(.+)$/im.exec(raw.slice(0, Math.max(0, start)))?.[2]?.trim();
   const notes: string[] = [];
   let rights: Rights = "check";
   if (!creators.length) notes.push("У книги нет автора в каталоге (сборник или аноним) — проверьте статус сами.");
-  else if (deaths.some((d) => d == null)) notes.push("Год смерти автора неизвестен — проверьте, что прошло больше 70 лет.");
+  else if (deaths.some((d) => d == null)) notes.push("Год смерти автора или переводчика неизвестен — проверьте, что прошло больше 70 лет.");
   else if (deaths.every((d) => publicDomainInNorway(d!, now))) {
     rights = "ok";
-    notes.push(`Автор умер в ${Math.max(...(deaths as number[]))} году — в Норвегии текст свободен от авторских прав.`);
+    notes.push(`${translators.length ? "Автор и переводчик умерли" : "Автор умер"} не позже ${Math.max(...(deaths as number[]))} года — в Норвегии текст свободен от авторских прав.`);
   } else {
     rights = "blocked";
-    notes.push(`Автор умер в ${Math.max(...(deaths as number[]))} году — в Норвегии текст ещё под авторским правом (70 лет после смерти).`);
+    notes.push(`${translators.length ? "Автор или переводчик умер" : "Автор умер"} в ${Math.max(...(deaths as number[]))} году — в Норвегии текст ещё под авторским правом (70 лет после смерти).`);
+  }
+  if (rights === "ok" && headerTranslator && !translators.length) {
+    rights = "check";
+    notes.push(`Это перевод (${headerTranslator}), а год смерти переводчика в каталоге не указан — проверьте сами.`);
   }
   if (!lang) {
     rights = "blocked";

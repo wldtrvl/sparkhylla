@@ -14,7 +14,8 @@
     "import:text": "tsx --env-file=.env.local scripts/import-text.ts",
     "vocab:build": "tsx --env-file=.env.local scripts/build-vocab.ts",
     "db:types": "bash scripts/gen-db-types.sh",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "import:batch": "tsx --conditions=react-server --env-file=.env.local scripts/import-batch.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

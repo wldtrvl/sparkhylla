@@ -33,6 +33,7 @@ export async function insertText(t: {
   body: string;
   source_url: string;
   license: string;
+  est_level?: string;
 }) {
   const db = admin();
   const { data: existing } = await db.from("texts").select("id").eq("title", t.title).eq("author", t.author).maybeSingle();
