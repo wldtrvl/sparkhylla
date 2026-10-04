@@ -181,14 +181,30 @@ async function wsPage(host: string, page: string) {
 
 const wsBody = (html: string) => htmlToBody(html, { root: ".prp-pages-output" }) || htmlToBody(html, { root: ".mw-parser-output" });
 
-/** Main-namespace pages linked from the text area, in order (a collection's table of contents). */
+/**
+ * Main-namespace pages linked from the text itself, in order (a collection's table of contents).
+ * The header above the text (author, previous/next text) is not part of it.
+ */
 function wsLinks(html: string, self: string): string[] {
+  const start = html.indexOf("prp-pages-output");
+  const content = start >= 0 ? html.slice(start) : html;
   const titles: string[] = [];
-  for (const m of html.matchAll(/<a href="\/wiki\/[^"#]+"[^>]*title="([^"]+)"/g)) {
+  for (const m of content.matchAll(/<a href="\/wiki\/[^"#]+"[^>]*title="([^"]+)"/g)) {
     const t = m[1].replace(/&amp;/g, "&").replace(/&#039;/g, "'");
     if (!t.includes(":") && t !== self && !titles.includes(t)) titles.push(t);
   }
   return titles;
+}
+
+/**
+ * The texts to fetch when a page is a collection: its own subpages (Title/1, Title/2…), or the links of a
+ * table-of-contents page with almost no text of its own. A short single text with a few links is not one.
+ */
+export function collectionLinks(html: string, title: string, bodyLength: number): string[] {
+  const all = wsLinks(html, title);
+  const subpages = all.filter((t) => t.startsWith(`${title}/`));
+  const links = subpages.length >= 3 ? subpages : bodyLength < 600 ? all : [];
+  return links.length >= 3 ? links : [];
 }
 
 const linkText = (s: string) => s.replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, "$1").replace(/''+/g, "").trim();
@@ -200,12 +216,11 @@ async function wikisource(u: URL): Promise<ImportDraft> {
   const main = await wsPage(host, page);
   let body = wsBody(main.html);
   const notes: string[] = [];
-  const links = wsLinks(main.html, main.title);
-  // A collection page (table of contents): fetch every linked text as a chapter.
-  if (body.length < 2000 && links.length >= 3) {
+  const links = collectionLinks(main.html, main.title, body.length);
+  if (links.length) {
     if (!contact())
       throw new ImportError(
-        `Это оглавление сборника (${links.length} текстов). Чтобы загрузить его целиком, добавьте IMPORT_CONTACT (ваш e-mail или адрес сайта) в настройки сервера — Wikimedia разрешает анонимным программам только 10 запросов в минуту. Отдельный текст можно загрузить и без этого.`,
+        `Это оглавление сборника (текстов в нём: ${links.length}). Чтобы загрузить его целиком, добавьте IMPORT_CONTACT (ваш e-mail или адрес сайта) в настройки сервера — Wikimedia разрешает анонимным программам только 10 запросов в минуту. Отдельный текст можно загрузить и без этого.`,
       );
     const parts: string[] = [];
     for (const t of links.slice(0, 80)) {
@@ -228,9 +243,12 @@ async function wikisource(u: URL): Promise<ImportDraft> {
     const idx = await wsPage(host, `Index:${index}`).catch(() => null);
     // one "|Field=value" per line; values may contain [[link|text]]
     const field = (names: string[]) => linkText(idx?.wikitext.match(new RegExp(`^\\|\\s*(?:${names.join("|")})\\s*=(.*)$`, "m"))?.[1] ?? "");
-    title = field(["Tittel", "Title"]) || title;
+    const book = field(["Tittel", "Title"]);
     author = field(["Forfatter", "Author"]);
     year = field(["Ar", "År", "Year"]);
+    // a whole collection takes the book's title; a single text keeps its own and names the book
+    if (links.length && book) title = book;
+    else if (book && book !== title) notes.push(`Текст из книги «${book}»${year ? `, ${year}` : ""}.`);
   }
   const pd = main.wikitext.match(/\{\{\s*(PD[^}|]*)/i)?.[1]?.trim();
   if (pd) notes.push(`Wikisource отмечает текст как общественное достояние ({{${pd}}}).`);

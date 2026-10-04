@@ -6,14 +6,17 @@ export const HEADING_PREFIX = "## ";
 export const isHeading = (p: string) => p.startsWith(HEADING_PREFIX);
 export const paragraphText = (p: string) => (isHeading(p) ? p.slice(HEADING_PREFIX.length) : p);
 
-/** Split a body into pages of whole paragraphs (~1600 characters each). A heading always starts a new page. */
+/**
+ * Split a body into pages of whole paragraphs (~1600 characters each). A heading starts a new page once the
+ * current one is a third full: each tale opens on its own page, while short article sections share one.
+ */
 export function paginate(body: string, target = 1600): string[][] {
   const paras = body.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
   const pages: string[][] = [];
   let cur: string[] = [];
   let len = 0;
   for (const p of paras) {
-    if (len > 0 && (len + p.length > target || isHeading(p))) {
+    if (len > 0 && (len + p.length > target || (isHeading(p) && len >= target / 3))) {
       pages.push(cur);
       cur = [];
       len = 0;

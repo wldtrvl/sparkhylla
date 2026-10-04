@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 
 const { htmlToBody, isChapterTitle, textToBody } = await import("@/lib/import/html");
 const { draftFromFile } = await import("@/lib/import/file");
-const { publicDomainInNorway, supportedUrl } = await import("@/lib/import/sources");
+const { collectionLinks, publicDomainInNorway, supportedUrl } = await import("@/lib/import/sources");
 const { analyzeBody } = await import("@/lib/import/analyze");
 
 describe("import: HTML and text to the body format", () => {
@@ -35,6 +35,16 @@ describe("import: rights and sources", () => {
     const now = new Date("2026-10-04");
     expect(publicDomainInNorway(1955, now)).toBe(true); // free since 1 Jan 2026
     expect(publicDomainInNorway(1956, now)).toBe(false);
+  });
+
+  it("tells a Wikisource collection from a short single text", () => {
+    const header = `<div class="ws-header"><a href="/wiki/Gjertrudsfuglen" title="Gjertrudsfuglen">◄</a><a href="/wiki/Eventyr" title="Eventyr">Eventyr</a><a href="/wiki/Forfatter:Moe" title="Forfatter:Moe">Moe</a></div>`;
+    const tale = `${header}<div class="prp-pages-output"><p>Hanen og reven …</p></div>`;
+    expect(collectionLinks(tale, "Hanen og reven", 1900)).toEqual([]);
+    const toc = `${header}<div class="prp-pages-output">${["Smørbukk", "Gudbrand i Lia", "Soria Moria slott"].map((t) => `<a href="/wiki/${t}" title="${t}">${t}</a>`).join("")}</div>`;
+    expect(collectionLinks(toc, "Eventyr", 120)).toEqual(["Smørbukk", "Gudbrand i Lia", "Soria Moria slott"]);
+    const withSubpages = `<div class="prp-pages-output"><p>Forord …</p>${[1, 2, 3].map((n) => `<a href="/wiki/Bok/${n}" title="Bok/${n}">${n}</a>`).join("")}<a href="/wiki/Annet" title="Annet">x</a></div>`;
+    expect(collectionLinks(withSubpages, "Bok", 5000)).toEqual(["Bok/1", "Bok/2", "Bok/3"]);
   });
 
   it("accepts only the supported hosts", () => {

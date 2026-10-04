@@ -22,7 +22,15 @@ interface Preview {
   fits: Fit[];
 }
 
-const words = (s: string) => (s.match(/\p{L}+/gu) ?? []).length;
+// same word pattern as tokenize() in coverage.ts (not imported: it would pull the frequency lists into the page)
+const words = (s: string) => (s.match(/\p{L}+(?:['’-]\p{L}+)*/gu) ?? []).length;
+
+/** Russian plural: plural(3, ["глава", "главы", "глав"]) → "главы" */
+function plural(n: number, [one, few, many]: [string, string, string]) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+}
 
 export function ImportForm() {
   const router = useRouter();
@@ -195,7 +203,7 @@ export function ImportForm() {
               <div className="row">
                 <span className="eyebrow">Текст</span>
                 <span className="small muted num" style={{ marginLeft: "auto" }}>
-                  абзацы {range[0] + 1}–{range[1] + 1} из {paras.length} · {trimmed.words.toLocaleString("ru-RU")} слов · {trimmed.pages} стр.
+                  абзацы {range[0] + 1}–{range[1] + 1} из {paras.length} · {trimmed.words.toLocaleString("ru-RU")} {plural(trimmed.words, ["слово", "слова", "слов"])} · {trimmed.pages} стр.
                 </span>
               </div>
               <p className="small muted">Уберите титульный лист, оглавление и примечания: нажмите «Начало» у первого абзаца книги и «Конец» у последнего.</p>
@@ -257,7 +265,9 @@ export function ImportForm() {
                 </div>
               ))}
               <span className="small muted">
-                {p.stats.words.toLocaleString("ru-RU")} слов до обрезки{p.stats.headings ? ` · ${p.stats.headings} глав` : ""} · {p.stats.orthography === "old" ? "старая орфография" : "современная орфография"}
+                {p.stats.words.toLocaleString("ru-RU")} {plural(p.stats.words, ["слово", "слова", "слов"])} до обрезки
+                {p.stats.headings ? ` · ${p.stats.headings} ${plural(p.stats.headings, p.draft.kind === "article" ? ["раздел", "раздела", "разделов"] : ["глава", "главы", "глав"])}` : ""} ·{" "}
+                {p.stats.orthography === "old" ? "старая орфография" : "современная орфография"}
               </span>
               {p.stats.warnings.map((w) => (
                 <p key={w} className="notice small">
@@ -269,7 +279,13 @@ export function ImportForm() {
             <button type="button" className="btn" disabled={!canSave || !!busy} onClick={save}>
               {busy === "save" ? "Сохраняю и строю словарь…" : "Добавить в библиотеку"}
             </button>
-            {rights === "blocked" && <p className="small muted">Современные книги остаются ссылкой на библиотеку или Bokhylla; читать их можно в режиме компаньона.</p>}
+            {rights === "blocked" && (
+              <p className="small muted">
+                {p.draft.source === "snl"
+                  ? "Попробуйте другую статью: у многих статей SNL лицензия «fri», их можно сохранить."
+                  : "Книги под авторским правом остаются ссылкой на библиотеку или Bokhylla; читать их можно в режиме компаньона."}
+              </p>
+            )}
           </aside>
         </div>
       )}

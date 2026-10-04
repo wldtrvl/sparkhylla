@@ -77,11 +77,14 @@ describe("quote of the day", () => {
 });
 
 describe("book pages", () => {
-  it("starts a new page at each heading and keeps paragraphs whole", () => {
-    const body = "## Første eventyr\n\nKort avsnitt.\n\n## Andre eventyr\n\n" + "Langt avsnitt. ".repeat(80) + "\n\nSiste avsnitt.";
+  it("starts a new page at a heading once the page is a third full, and keeps paragraphs whole", () => {
+    const tale = "Det var en gang en mann som bodde i skogen. ".repeat(4).trim(); // ~180 characters
+    const body = `## Første eventyr\n\n${tale}\n\n## Andre eventyr\n\n${tale}\n\n## Kort del\n\nEn setning.\n\n## Neste del\n\nSiste avsnitt.`;
     const pages = paginate(body, 400);
-    expect(pages[0]).toEqual(["## Første eventyr", "Kort avsnitt."]);
+    expect(pages[0]).toEqual(["## Første eventyr", tale]);
     expect(pages[1][0]).toBe("## Andre eventyr");
+    // a short section does not get a page of its own
     expect(pages.flat().map(paragraphText)).toContain("Siste avsnitt.");
+    expect(pages.find((pg) => pg.includes("## Kort del"))).toContain("## Neste del");
   });
 });
