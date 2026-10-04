@@ -34,6 +34,11 @@ function Book({ b }: { b: LibraryItem }) {
       )}
       <div className="row" style={{ gap: 6 }}>
         <span className="chip">{b.availability === "in_app" ? "Читать здесь" : "Библиотека / Bokhylla"}</span>
+        {b.orthography === "old" && (
+          <span className="chip" title="Написание до реформы 1938 года: sig, kunde, efter. Такие слова засчитываются по современному написанию.">
+            старая орфография
+          </span>
+        )}
         {b.progress?.finished && <span className="chip ok">прочитано</span>}
         {b.progress && !b.progress.finished && <span className="chip brass">читаю</span>}
       </div>

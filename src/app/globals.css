@@ -184,3 +184,16 @@ table.data td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical
 .icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
 .icon-btn svg { width: 22px; height: 22px; }
 .prose-heading { font-family: var(--f-display); font-weight: 600; font-size: 1.6em; line-height: 1.15; margin: 0.4em 0 0.1em; text-wrap: balance; }
+
+/* ---------- import ---------- */
+.trim-list { list-style: none; margin: 0; padding: 0; max-height: 560px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.trim-list li { display: grid; grid-template-columns: 3.2em 1fr auto; gap: 10px; align-items: center; padding: 7px 10px; border-top: 1px solid var(--paper-2); font-size: 14px; line-height: 1.4; }
+.trim-list li:first-child { border-top: 0; }
+.trim-list li.out { opacity: 0.4; }
+.trim-list li .h { font-weight: 700; font-family: var(--f-display); font-size: 17px; }
+.trim-list li > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
+.trim-list .chip { border: 1px solid var(--line); cursor: pointer; font-weight: 500; font-size: 12px; }
+.trim-list .chip[aria-pressed="true"] { background: var(--cloth); color: var(--cloth-ink); border-color: var(--cloth); }
+.rights-ok { border-color: var(--ok); background: var(--ok-soft); }
+.rights-check { border-color: var(--brass); background: var(--brass-soft); }
+.rights-blocked { border-color: var(--oxblood); background: var(--oxblood-soft); }

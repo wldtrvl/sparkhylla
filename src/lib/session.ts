@@ -53,7 +53,13 @@ export async function knownSets(s: Session, lang: Lang): Promise<KnownSets> {
 
 /** Her words in one query: the sets used for coverage, plus the terms she is learning (reader underline). */
 export async function wordState(s: Session, lang: Lang): Promise<{ known: KnownSets; learning: string[] }> {
-  const { data } = await s.supabase.from("words").select("term,lemma,status").eq("user_id", s.user.id).eq("lang", lang).limit(20000);
+  const { own, learning } = await ownWordsFor(s.supabase, s.user.id, lang);
+  return { known: { band: frequencyBand(lang, s.profile.levels[lang]?.reading ?? "B1"), own }, learning };
+}
+
+/** A learner's own words as coverage counts them (forms, lemmas without article, parts of phrases). RLS applies. */
+export async function ownWordsFor(supabase: SupabaseClient, userId: string, lang: Lang): Promise<{ own: Set<string>; learning: string[] }> {
+  const { data } = await supabase.from("words").select("term,lemma,status").eq("user_id", userId).eq("lang", lang).limit(20000);
   const own = new Set<string>();
   const learning: string[] = [];
   for (const w of data ?? []) {
@@ -63,7 +69,7 @@ export async function wordState(s: Session, lang: Lang): Promise<{ known: KnownS
     // phrases: each part counts as met
     String(w.term).toLowerCase().split(/\s+/).forEach((p) => p.length > 2 && own.add(p));
   }
-  return { known: { band: frequencyBand(lang, s.profile.levels[lang]?.reading ?? "B1"), own }, learning };
+  return { own, learning };
 }
 
 /** One row of daily_activity() (migration 0005): minutes and counts per Oslo day. */

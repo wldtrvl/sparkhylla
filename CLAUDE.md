@@ -31,6 +31,8 @@ Before every commit: `npm run typecheck && npm test && npm run lint`.
   - `run.ts`: server entry point. It reads `model_routes` and logs every attempt to `llm_calls`.
   - `pricing.ts`: USD per 1M tokens.
 - `src/lib/learning/`: coverage (text fit; `buildVocab` + SQL `text_fit()` for the library, kept identical by `tests/sql.test.ts`), FSRS (`srs.ts`), answer checking, quotes, grammar map (`RULE_KEYS`).
+- `src/lib/import/`: coach book import (`/coach/import`). `sources.ts` fetches Gutenberg, Wikisource (incl. collections), Wikipedia and SNL from an allowlist of hosts and decides `rights` (ok / check / blocked; Norway: author died 70+ years ago); `file.ts` reads .txt/.epub; `analyze.ts` flags old spelling. Saving builds the vocabulary via `src/lib/vocab.ts`.
+- `src/lib/text-format.ts`: book body format (blank-line paragraphs, `## ` headings) and `paginate()`.
 - `src/lib/speech/`: STT (OpenAI or Gemini) and TTS (Google or OpenAI, cached in the `tts` bucket).
 - `src/lib/session.ts`: `requireSession` for pages (cached per request), `apiSession` and `logEvent` for API routes. `src/components/tracker.tsx` holds the client `track()`.
 - `src/lib/log.ts`: `insertLater()` writes `events`, `llm_calls` and `speech_calls` rows in `after()`, so logging never delays a response. Don't `await` log writes in request code.

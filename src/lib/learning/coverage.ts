@@ -15,6 +15,16 @@ export const LEVEL_BAND: Record<string, number> = { A1: 700, A2: 1500, B1: 3000,
 const FREQ: Record<Lang, string[]> = { no: freqNo as string[], en: freqEn as string[] };
 const bandCache = new Map<string, Set<string>>();
 
+/** Norwegian or English? Compares how many tokens fall in each language's 300 most frequent words. */
+export function guessLang(text: string): Lang {
+  const toks = tokenize(text.slice(0, 20_000));
+  const score = (l: Lang) => {
+    const top = new Set(FREQ[l].slice(0, 300));
+    return toks.filter((t) => top.has(t.norm)).length;
+  };
+  return score("no") >= score("en") ? "no" : "en";
+}
+
 /** How many of the most frequent words count as known at a reading level. */
 export function bandSize(level: string): number {
   return LEVEL_BAND[level.replace("+", "")] ?? 3000;

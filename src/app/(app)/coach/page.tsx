@@ -63,6 +63,9 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
                 {l.display_name}
               </Link>
             ))}
+          <Link className="btn small" href="/coach/import">
+            Добавить книгу
+          </Link>
           <a className="btn ghost small" href={`/api/export?table=events&u=${uid}`}>
             Скачать события (CSV)
           </a>

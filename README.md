@@ -60,6 +60,8 @@ Tasks are `gloss`, `talk_open`, `tutor_turn`, `talk_help`, `talk_feedback` and `
    ```
    The importers also store each book's vocabulary (`text_vocab`), which the library uses to compute "% of words you know" without loading book texts. After editing a book's text by hand in Supabase, run `npm run vocab:build` (add `-- --all` to rebuild every book).
 
+   Easier: as coach, open **Кабинет помощника → Добавить книгу** and paste a link (Wikisource, Gutenberg, Wikipedia, Store norske leksikon) or upload a .txt/.epub. The screen checks the licence, shows how many words she knows, lets you trim front matter, and saves. Set `IMPORT_CONTACT` (your e-mail or a URL) to import whole Wikisource collections.
+
    Modern books are added as `availability = 'external'` rows with a link (see seed.sql); she reads them in the library or Bokhylla and uses companion mode.
 5. **Link coach and learner** after both have signed in once:
    ```sql
