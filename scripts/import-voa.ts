@@ -108,7 +108,7 @@ async function main() {
         if (!save) continue;
         const key = link.match(/(\d+)\.html$/)?.[1] ?? String(Date.now());
         const audioUrl = await storeAudio(a.mp3, key);
-        const id = await insertText({
+        const { id } = await insertText({
           lang: "en",
           title: a.title,
           author: "VOA Learning English",
@@ -120,7 +120,8 @@ async function main() {
           license: "public domain (VOA Learning English, US government work)",
           est_level: sec.level,
         });
-        const { error } = await admin().from("texts").update({ audio_url: audioUrl }).eq("id", id);
+        // also fills the recording in for an article saved earlier without it
+        const { error } = await admin().from("texts").update({ audio_url: audioUrl }).eq("id", id).is("audio_url", null);
         if (error) throw error;
       }
     }

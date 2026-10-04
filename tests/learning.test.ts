@@ -91,6 +91,17 @@ describe("book pages", () => {
   });
 });
 
+describe("older spelling", () => {
+  it("reads aa as å and knows frequent Dano-Norwegian forms", async () => {
+    const { modernForm } = await import("@/lib/learning/coverage");
+    expect(modernForm("paa", "no")).toBe("på");
+    expect(modernForm("gaardshunden", "no")).toBe("gårdshunden");
+    expect(modernForm("havde", "no")).toBe("hadde");
+    expect(modernForm("hus", "no")).toBeNull();
+    expect(modernForm("paa", "en")).toBeNull();
+  });
+});
+
 describe("compounds", () => {
   it("splits Norwegian compounds into listed words, with a linking -s- or -e-", async () => {
     const { wordParts } = await import("@/lib/learning/coverage");

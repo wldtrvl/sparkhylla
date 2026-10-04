@@ -14,8 +14,8 @@ async function main() {
     process.exit(1);
   }
   const body = cleanBody(await readFile(file, "utf8"));
-  const id = await insertText({ lang: lang === "no" ? "no" : "en", title, author, year, kind, author_note: note, body, source_url: source, license });
-  console.log(`Imported "${title}" → texts.id = ${id}`);
+  const { id, status } = await insertText({ lang: lang === "no" ? "no" : "en", title, author, year, kind, author_note: note, body, source_url: source, license });
+  console.log(`${status === "kept" ? "Already in the library (use --update to replace)" : "Imported"}: "${title}" → texts.id = ${id}`);
 }
 
 main().catch((e) => {

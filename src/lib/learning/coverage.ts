@@ -74,12 +74,14 @@ const MODERN_NO: Record<string, string> = {
   sig: "seg", mig: "meg", dig: "deg", vilde: "ville", kunde: "kunne", skulde: "skulle", blev: "ble", op: "opp",
   hvad: "hva", nu: "nå", ennu: "ennå", drog: "dro", mere: "mer", hverken: "verken", igjennem: "igjennom",
   idag: "dag", imorgen: "morgen", igaar: "går", igår: "går", hvorledes: "hvordan", // i dag, i morgen, i går
+  // Dano-Norwegian before 1907 (Aanrud, Zwilgmeyer, early Undset)
+  ud: "ut", gik: "gikk", fik: "fikk", havde: "hadde", sagde: "sa", spurgte: "spurte", altid: "alltid", lidt: "litt", sige: "si",
 };
 
 /** Today's spelling of an older form (Norwegian only), or null when the form is already modern. */
 export function modernForm(norm: string, lang: Lang): string | null {
   if (lang !== "no") return null;
-  const m = MODERN_NO[norm] ?? (norm.startsWith("efter") ? `etter${norm.slice(5)}` : null);
+  const m = MODERN_NO[norm] ?? (norm.startsWith("efter") ? `etter${norm.slice(5)}` : norm.includes("aa") ? norm.replaceAll("aa", "å") : null);
   return m && m !== norm ? m : null;
 }
 
@@ -114,7 +116,7 @@ export function isKnownForm(norm: string, known: KnownSets, lang?: Lang): boolea
   if (known.own.has(norm) || known.band.has(norm)) return true;
   const modern = lang ? modernForm(norm, lang) : null;
   if (modern && (known.own.has(modern) || known.band.has(modern))) return true;
-  const parts = wordParts(norm, lang);
+  const parts = wordParts(modern ?? norm, lang); // old spelling: split the modern form (gaardshunden → gård + hunden)
   return !!parts && parts.every((p) => known.own.has(p) || known.band.has(p));
 }
 
@@ -250,7 +252,7 @@ export function buildVocab(text: string, lang: Lang): TextVocab {
   const entries: VocabEntry[] = [];
   for (const [form, n] of counts) {
     const alt = modernForm(form, lang);
-    const parts = alt ? null : wordParts(form, lang);
+    const parts = wordParts(alt ?? form, lang);
     entries.push({
       form,
       n,

@@ -5,9 +5,17 @@ import { htmlToBody, textToBody } from "./html";
 import { ImportError, type ImportDraft } from "./types";
 
 /** Uploaded .txt or .epub (e.g. from bokselskap.no or Gutenberg). The coach confirms the rights. */
-export function draftFromFile(name: string, bytes: Uint8Array): ImportDraft {
+export interface FileOptions {
+  /** skip EPUB sections shorter than this (title pages, colophons); default 0 */
+  minSectionWords?: number;
+}
+
+/** Modern editorial material in editions of old books: never part of the original text. */
+const EDITORIAL = /^(innledning|forord ved|etterord|om teksten|om forfatteren|om boka|noter|kommentarer|ordforklaringer|tekstkritisk|kolofon|introduction|afterword|notes)\b/i;
+
+export function draftFromFile(name: string, bytes: Uint8Array, opts: FileOptions = {}): ImportDraft {
   const lower = name.toLowerCase();
-  if (lower.endsWith(".epub")) return fromEpub(name, bytes);
+  if (lower.endsWith(".epub")) return fromEpub(name, bytes, opts);
   if (lower.endsWith(".txt")) return fromText(name, bytes);
   throw new ImportError("Поддерживаются файлы .txt и .epub.");
 }
@@ -52,7 +60,14 @@ function fromText(name: string, bytes: Uint8Array): ImportDraft {
 const meta = (opf: string, tag: string) => opf.match(new RegExp(`<dc:${tag}[^>]*>([\\s\\S]*?)</dc:${tag}>`))?.[1]?.replace(/<[^>]+>/g, "").trim() ?? "";
 const attr = (el: string, name: string) => el.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1] ?? "";
 
-function fromEpub(name: string, bytes: Uint8Array): ImportDraft {
+export interface EpubBook {
+  meta: { title: string; creator: string; language: string; date: string; rights: string; subject: string; description: string };
+  /** spine documents in reading order; title = the section's first heading */
+  sections: { title: string | null; body: string }[];
+}
+
+/** An EPUB's metadata and its sections in reading order (navigation, editorial and tiny sections left out). */
+export function epubSections(bytes: Uint8Array, opts: FileOptions = {}): EpubBook {
   let files: Record<string, Uint8Array>;
   try {
     files = unzipSync(bytes);
@@ -66,24 +81,44 @@ function fromEpub(name: string, bytes: Uint8Array): ImportDraft {
   const dir = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
   const items = new Map<string, { href: string; type: string; props: string }>();
   for (const m of opf.matchAll(/<item\b[^>]*>/g)) items.set(attr(m[0], "id"), { href: attr(m[0], "href"), type: attr(m[0], "media-type"), props: attr(m[0], "properties") });
-  const chapters: string[] = [];
+  const sections: EpubBook["sections"] = [];
   for (const m of opf.matchAll(/<itemref\b[^>]*>/g)) {
     const it = items.get(attr(m[0], "idref"));
     if (!it || !/html/.test(it.type) || /\bnav\b/.test(it.props) || /(^|\/)(toc|nav)\b/i.test(it.href)) continue;
     const html = read(dir + decodeURIComponent(it.href.split("#")[0]));
-    const b = htmlToBody(html, { headings: "h1, h2, h3" });
-    if (b) chapters.push(b);
+    // page numbers of the printed edition, e.g. "[19]"
+    const b = htmlToBody(html, { headings: "h1, h2, h3" }).replace(/\[\d+\]\s*/g, "");
+    const first = b.split("\n\n")[0] ?? "";
+    const words = (b.match(/\p{L}+/gu) ?? []).length;
+    if (!b || EDITORIAL.test(first.replace(/^## /, "")) || words < (opts.minSectionWords ?? 0)) continue;
+    sections.push({ title: first.startsWith("## ") ? first.slice(3).trim() : null, body: b });
   }
-  let body = chapters.join("\n\n");
+  return {
+    meta: {
+      title: meta(opf, "title"),
+      creator: meta(opf, "creator"),
+      language: meta(opf, "language").toLowerCase(),
+      date: meta(opf, "date"),
+      rights: meta(opf, "rights"),
+      subject: meta(opf, "subject"),
+      description: meta(opf, "description"),
+    },
+    sections,
+  };
+}
+
+function fromEpub(name: string, bytes: Uint8Array, opts: FileOptions): ImportDraft {
+  const book = epubSections(bytes, opts);
+  let body = book.sections.map((x) => x.body).join("\n\n");
   if (/START OF (THE|THIS) PROJECT GUTENBERG/i.test(body)) body = stripGutenberg(body).trim();
   if (!body) throw new ImportError("В EPUB не нашлось текста.");
-  const language = meta(opf, "language").toLowerCase();
-  const rights = meta(opf, "rights");
+  const language = book.meta.language;
+  const rights = book.meta.rights;
   return {
     source: "file",
-    title: meta(opf, "title") || baseTitle(name),
-    author: meta(opf, "creator"),
-    year: meta(opf, "date").slice(0, 4),
+    title: book.meta.title || baseTitle(name),
+    author: book.meta.creator,
+    year: book.meta.date.slice(0, 4),
     lang: language.startsWith("en") ? "en" : /^(no|nb|nn)/.test(language) ? "no" : guessLang(body),
     kind: "story",
     body,

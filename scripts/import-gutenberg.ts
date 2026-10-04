@@ -24,7 +24,7 @@ async function main() {
   if (start < 0 || end < 0) throw new Error("Could not find the Gutenberg START/END markers — check the id.");
   const bodyStart = raw.indexOf("\n", start) + 1;
   const body = cleanBody(raw.slice(bodyStart, end));
-  const textId = await insertText({
+  const { id: textId, status } = await insertText({
     lang: lang === "no" ? "no" : "en",
     title,
     author,
@@ -35,7 +35,7 @@ async function main() {
     source_url: `https://www.gutenberg.org/ebooks/${id}`,
     license: "public domain (Project Gutenberg)",
   });
-  console.log(`Imported "${title}" (${body.length} chars) → texts.id = ${textId}`);
+  console.log(`${status === "kept" ? "Already in the library (use --update to replace)" : "Imported"}: "${title}" (${body.length} chars) → texts.id = ${textId}`);
   console.log("Tip: open the text once and trim front matter (title page, table of contents) in Supabase if needed.");
 }
 
