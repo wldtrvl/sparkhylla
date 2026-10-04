@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { isHeading, paragraphText } from "@/lib/text-format";
 import { speak } from "./audio";
 import { track } from "./tracker";
 
@@ -56,7 +57,8 @@ export function Reader(props: {
   const [saved, setSaved] = useState<"" | "learning" | "known">("");
   const langAttr = props.lang === "no" ? "nb" : "en";
 
-  const paras = useMemo(() => props.paragraphs.map(pieces), [props.paragraphs]);
+  const texts = useMemo(() => props.paragraphs.map(paragraphText), [props.paragraphs]);
+  const paras = useMemo(() => texts.map(pieces), [texts]);
 
   async function open(term: string, paragraph: string, key: string) {
     const sentence = sentenceAround(paragraph, term);
@@ -120,9 +122,11 @@ export function Reader(props: {
     <div className="split">
       <div className="wide">
         <div className="prose" lang={langAttr} style={{ fontSize: "var(--read-size, 21px)" }}>
-          {paras.map((ps, i) => (
+          {paras.map((ps, i) => {
+            const Tag = isHeading(props.paragraphs[i]) ? "h2" : "p";
+            return (
             <div key={i} className="stack" style={{ gap: 6 }}>
-              <p onMouseUp={() => onMouseUp(props.paragraphs[i])}>
+              <Tag className={Tag === "h2" ? "prose-heading" : undefined} onMouseUp={() => onMouseUp(texts[i])}>
                 {ps.map((x, j) => {
                   if (!x.word) return <span key={j}>{x.t}</span>;
                   const n = norm(x.t);
@@ -135,28 +139,31 @@ export function Reader(props: {
                       className={cls}
                       role={isUnknown ? "button" : undefined}
                       tabIndex={isUnknown ? 0 : undefined}
-                      onClick={() => window.getSelection()?.toString().trim().includes(" ") || open(x.t, props.paragraphs[i], key)}
-                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(x.t, props.paragraphs[i], key))}
+                      onClick={() => window.getSelection()?.toString().trim().includes(" ") || open(x.t, texts[i], key)}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(x.t, texts[i], key))}
                     >
                       {x.t}
                     </span>
                   );
                 })}
-              </p>
+              </Tag>
+              {Tag === "p" && (
               <div className="para-tools">
                 <button
                   type="button"
                   className="btn soft small"
                   onClick={() => {
                     track("read.listen", { textId: props.textId, paragraph: i });
-                    speak(props.paragraphs[i], props.lang);
+                    speak(texts[i], props.lang);
                   }}
                 >
                   Слушать абзац
                 </button>
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

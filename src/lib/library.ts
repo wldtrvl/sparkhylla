@@ -62,25 +62,6 @@ export async function libraryFor(s: Session, lang: Lang): Promise<LibraryItem[]>
   return items.sort((a, b) => order[a.group] - order[b.group] || (b.coverage ?? 0.94) - (a.coverage ?? 0.94));
 }
 
-/** Split a body into pages of whole paragraphs (~1600 characters each). */
-export function paginate(body: string, target = 1600): string[][] {
-  const paras = body.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
-  const pages: string[][] = [];
-  let cur: string[] = [];
-  let len = 0;
-  for (const p of paras) {
-    if (len > 0 && len + p.length > target) {
-      pages.push(cur);
-      cur = [];
-      len = 0;
-    }
-    cur.push(p);
-    len += p.length;
-  }
-  if (cur.length) pages.push(cur);
-  return pages.length ? pages : [[""]];
-}
-
 export const COVER_COLORS = ["#7b2d26", "#2c3e5a", "#a97a2c", "#2e4a3b", "#5a3a4a", "#4a3a2a"];
 export function coverColor(id: string) {
   let h = 0;

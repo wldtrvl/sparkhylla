@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { Companion } from "@/components/Companion";
 import { PageNav } from "@/components/PageNav";
 import { Reader } from "@/components/Reader";
-import { coverage } from "@/lib/learning/coverage";
-import { paginate, TEXT_COLUMNS, type TextRow } from "@/lib/library";
+import { coverage, nameForms, tokenize } from "@/lib/learning/coverage";
+import { TEXT_COLUMNS, type TextRow } from "@/lib/library";
+import { paginate } from "@/lib/text-format";
 import { requireSession, wordState } from "@/lib/session";
 
 export default async function ReadPage({ params, searchParams }: PageProps<"/read/[id]">) {
@@ -60,8 +61,9 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
   ]);
   const pageIdx = Math.min(Math.max(0, sp.page != null ? Number(sp.page) || 0 : (prog?.page ?? 0)), pages.length - 1);
   const pageText = pages[pageIdx].join("\n\n");
-  const cov = coverage(pageText, known);
-  const whole = coverage(t.body, known);
+  const names = nameForms(tokenize(t.body));
+  const cov = coverage(pageText, known, t.lang, names);
+  const whole = coverage(t.body, known, t.lang, names);
 
   return (
     <>

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const b = await parseBody(req, Body);
   if (isResponse(b)) return b;
   const known = await knownSets(s, b.lang);
-  const c = coverage(b.text, known);
+  const c = coverage(b.text, known, b.lang);
   logEvent(s, "read.companion_paste", { textId: b.textId, tokens: c.total, coverage: Math.round(c.coverage * 1000) / 1000 });
   return NextResponse.json({ coverage: c.coverage, total: c.total, unknown: c.unknown });
 }

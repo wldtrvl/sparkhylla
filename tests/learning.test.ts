@@ -3,6 +3,7 @@ import { checkAnswer } from "@/lib/learning/answer";
 import { coverage, fitFromLevel, fitGroup, frequencyBand, tokenize } from "@/lib/learning/coverage";
 import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
 import { newCard, schedule } from "@/lib/learning/srs";
+import { paginate, paragraphText } from "@/lib/text-format";
 
 describe("coverage", () => {
   it("tokenizes Norwegian letters and keeps sentence starts", () => {
@@ -72,5 +73,15 @@ describe("quote of the day", () => {
     const seen = new Set<number>();
     for (let i = 0; i < 20; i++) seen.add(quoteOfDay(quotes, new Date(Date.UTC(2026, 9, 1 + i, 9)))!.id);
     expect(seen.size).toBe(5);
+  });
+});
+
+describe("book pages", () => {
+  it("starts a new page at each heading and keeps paragraphs whole", () => {
+    const body = "## Første eventyr\n\nKort avsnitt.\n\n## Andre eventyr\n\n" + "Langt avsnitt. ".repeat(80) + "\n\nSiste avsnitt.";
+    const pages = paginate(body, 400);
+    expect(pages[0]).toEqual(["## Første eventyr", "Kort avsnitt."]);
+    expect(pages[1][0]).toBe("## Andre eventyr");
+    expect(pages.flat().map(paragraphText)).toContain("Siste avsnitt.");
   });
 });

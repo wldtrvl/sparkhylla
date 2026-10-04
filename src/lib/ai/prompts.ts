@@ -33,10 +33,13 @@ export type Gloss = z.infer<typeof GlossSchema>;
 export function glossPrompt(p: { lang: Lang; uiLang: UiLang; level: string; term: string; sentence: string }): PromptSpec {
   return {
     id: "gloss",
-    version: 1,
+    version: 2,
     system:
       `You are a precise bilingual dictionary for a language learner. ${LEARNER(p.lang, p.uiLang, p.level)}\n` +
       `Explain the meaning of the given ${langName(p.lang)} word or phrase AS USED IN THE SENTENCE. Be accurate; if a word is part of a fixed expression in the sentence, say so in the note.\n` +
+      (p.lang === "no"
+        ? `The text may use older Norwegian spelling (riksmål before 1938, e.g. "sig", "kunde", "efter", "hvad", "blev"). If so, give the lemma in today's bokmål spelling and begin the note with the modern spelling of the word as written.\n`
+        : "") +
       `Reply with ONLY a JSON object:\n` +
       `{"lemma": dictionary form (Norwegian: infinitive with "å" for verbs, noun with article e.g. "en bil"), ` +
       `"translation": short ${uiName(p.uiLang)} translation for this context (1-4 words), ` +

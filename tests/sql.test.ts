@@ -26,6 +26,9 @@ const SAMPLE = `Kari bor i en liten by ved fjorden. Hver morgen går hun til bak
 
 Etterpå sykler hun langs vannet til jobben i Bergen-avdelingen. Det regner, men hun synes det er fint likevel. Kollegaene hennes sier at Kari alltid kommer blid på jobb.`;
 
+// Older spelling (1917 riksmål) and a name that also opens sentences.
+const OLD = `Halvor gikk ut i skogen. Der satte han sig ned, for han vilde hvile. Efter en stund kom trollet, og Halvor skulde nu vise hvad han kunde. «Hvad gjør du her?» sa trollet til Halvor. Efterpå gikk de hjem sammen.`;
+
 let db: PGlite;
 const USER = "11111111-1111-1111-1111-111111111111";
 
@@ -43,7 +46,7 @@ async function insertText(body: string, lang: "no" | "en") {
   const id = rows[0].id;
   const v = buildVocab(body, lang);
   for (const e of v.entries) {
-    await db.query(`insert into text_vocab (text_id, form, n, rank, parts, part_ranks) values ($1, $2, $3, $4, $5, $6)`, [id, e.form, e.n, e.rank, e.parts, e.part_ranks]);
+    await db.query(`insert into text_vocab (text_id, form, n, rank, alt, parts, part_ranks) values ($1, $2, $3, $4, $5, $6, $7)`, [id, e.form, e.n, e.rank, e.alt, e.parts, e.part_ranks]);
   }
   await db.query(`update texts set token_count = $2, proper_tokens = $3, vocab_built_at = now() where id = $1`, [id, v.tokens, v.proper]);
   return { id, v };
@@ -75,6 +78,22 @@ describe("migrations and SQL functions", () => {
       }
     }
     expect(seen.size).toBeGreaterThan(8); // levels and own words really change the result
+  });
+
+  it("counts older spellings via their modern form and names at sentence starts, in JS and SQL alike", async () => {
+    const { id, v } = await insertText(OLD, "no");
+    expect(v.entries.find((e) => e.form === "sig")?.alt).toBe("seg");
+    expect(v.entries.find((e) => e.form === "efterpå")?.alt).toBe("etterpå");
+    expect(v.entries.some((e) => e.form === "halvor")).toBe(false); // a name everywhere, also at sentence starts
+    const withoutModern = coverage(OLD.replace(/\b(sig|vilde|skulde|nu|hvad|kunde)\b/g, "zzq"), { band: frequencyBand("no", "B1"), own: new Set() }, "no");
+    for (const own of [new Set<string>(), new Set(["etterpå", "trollet"])]) {
+      for (const level of ["A1", "B1"]) {
+        const expected = coverage(OLD, { band: frequencyBand("no", level), own }, "no").coverage;
+        expect(coverageFromVocab(v, own, bandSize(level))).toBeCloseTo(expected, 12);
+        expect(await sqlCoverage(id, "no", bandSize(level), [...own])).toBeCloseTo(expected, 12);
+      }
+    }
+    expect(coverage(OLD, { band: frequencyBand("no", "B1"), own: new Set() }, "no").coverage).toBeGreaterThan(withoutModern.coverage);
   });
 
   it("skips texts without a built vocabulary, and editing a body clears it", async () => {
