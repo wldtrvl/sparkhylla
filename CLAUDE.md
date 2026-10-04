@@ -9,11 +9,12 @@ A home language library for one learner: a 51-year-old Ukrainian/Russian speaker
 ```bash
 npm run dev         # http://localhost:3000 (needs .env.local, copy from .env.example)
 npm run typecheck   # next typegen && tsc --noEmit; run after deleting .next too
-npm test            # vitest: tests/learning.test.ts, tests/ai.test.ts
+npm test            # vitest: learning, ai, and sql.test.ts (all migrations run in PGlite)
 npm run lint
 npm run eval        # offline model comparison → eval-results/*.md (needs AI keys)
 npm run import:gutenberg -- <id> <lang> "<title>" "<author>" <year> <kind> "<note in Russian>"
 npm run import:text -- <file.txt> <lang> "<title>" "<author>" "<year>" "<source url>" "<license>" <kind>
+npm run vocab:build # (re)build text_vocab for in-app books; needed after editing a body by hand
 ```
 
 Before every commit: `npm run typecheck && npm test && npm run lint`.
@@ -29,7 +30,7 @@ Before every commit: `npm run typecheck && npm test && npm run lint`.
   - `execute.ts`: attempts, JSON repair and fallbacks.
   - `run.ts`: server entry point. It reads `model_routes` and logs every attempt to `llm_calls`.
   - `pricing.ts`: USD per 1M tokens.
-- `src/lib/learning/`: coverage (text fit), FSRS (`srs.ts`), answer checking, quotes, grammar map (`RULE_KEYS`).
+- `src/lib/learning/`: coverage (text fit; `buildVocab` + SQL `text_fit()` for the library, kept identical by `tests/sql.test.ts`), FSRS (`srs.ts`), answer checking, quotes, grammar map (`RULE_KEYS`).
 - `src/lib/speech/`: STT (OpenAI or Gemini) and TTS (Google or OpenAI, cached in the `tts` bucket).
 - `src/lib/session.ts`: `requireSession` for pages (cached per request), `apiSession` and `logEvent` for API routes. `src/components/tracker.tsx` holds the client `track()`.
 - `src/lib/log.ts`: `insertLater()` writes `events`, `llm_calls` and `speech_calls` rows in `after()`, so logging never delays a response. Don't `await` log writes in request code.

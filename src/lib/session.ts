@@ -66,6 +66,16 @@ export async function wordState(s: Session, lang: Lang): Promise<{ known: KnownS
   return { known: { band: frequencyBand(lang, s.profile.levels[lang]?.reading ?? "B1"), own }, learning };
 }
 
+/** One row of daily_activity() (migration 0005): minutes and counts per Oslo day. */
+export interface DailyActivity {
+  day: string;
+  minutes: number;
+  reviews: number;
+  words_saved: number;
+  talk_turns: number;
+  word_taps: number;
+}
+
 /** Server-side event (decisions the app makes, results of AI calls tied to learning). Written after the response. */
 export function logEvent(s: Session, type: string, props: Record<string, unknown> = {}, path?: string) {
   insertLater("events", { user_id: s.user.id, type, props, path: path ?? null, app_version: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0", created_at: new Date().toISOString() });

@@ -4,16 +4,16 @@ import { Companion } from "@/components/Companion";
 import { PageNav } from "@/components/PageNav";
 import { Reader } from "@/components/Reader";
 import { coverage } from "@/lib/learning/coverage";
-import { paginate, type TextRow } from "@/lib/library";
+import { paginate, TEXT_COLUMNS, type TextRow } from "@/lib/library";
 import { requireSession, wordState } from "@/lib/session";
 
 export default async function ReadPage({ params, searchParams }: PageProps<"/read/[id]">) {
   const s = await requireSession();
   const { id } = await params;
   const sp = await searchParams;
-  const { data } = await s.supabase.from("texts").select("*").eq("id", id).maybeSingle();
+  const { data } = await s.supabase.from("texts").select(TEXT_COLUMNS).eq("id", id).maybeSingle();
   if (!data) notFound();
-  const t = data as TextRow;
+  const t = data as unknown as TextRow;
   const langAttr = t.lang === "no" ? "nb" : "en";
 
   const header = (

@@ -13,10 +13,13 @@ export interface ConversationRow {
 }
 
 export async function loadConversation(s: Session, id: string) {
-  const { data: conv } = await s.supabase.from("conversations").select("*").eq("id", id).eq("user_id", s.user.id).maybeSingle();
+  const [{ data: conv }, { data: turns }] = await Promise.all([
+    s.supabase.from("conversations").select("id,user_id,scenario_id,lang,level,goals_done,ended_at").eq("id", id).eq("user_id", s.user.id).maybeSingle(),
+    s.supabase.from("conversation_turns").select("role,text,notes").eq("conversation_id", id).order("id"),
+  ]);
   if (!conv) return null;
-  const { data: sc } = await s.supabase.from("scenarios").select("*").eq("id", conv.scenario_id).single();
-  const { data: turns } = await s.supabase.from("conversation_turns").select("role,text,notes,created_at").eq("conversation_id", id).order("id");
+  const { data: sc } = await s.supabase.from("scenarios").select("persona,setting,goals").eq("id", conv.scenario_id).maybeSingle();
+  if (!sc) return null;
   const ctx: ScenarioCtx = {
     persona: sc.persona,
     setting: sc.setting,

@@ -11,7 +11,8 @@
     "test": "vitest run",
     "eval": "tsx --env-file=.env.local scripts/eval-models.ts",
     "import:gutenberg": "tsx --env-file=.env.local scripts/import-gutenberg.ts",
-    "import:text": "tsx --env-file=.env.local scripts/import-text.ts"
+    "import:text": "tsx --env-file=.env.local scripts/import-text.ts",
+    "vocab:build": "tsx --env-file=.env.local scripts/build-vocab.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -24,6 +25,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",

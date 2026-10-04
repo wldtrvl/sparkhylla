@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   if (isResponse(s)) return s;
   const b = await parseBody(req, Body);
   if (isResponse(b)) return b;
-  const { data: sc } = await s.supabase.from("scenarios").select("*").eq("id", b.scenarioId).eq("active", true).maybeSingle();
+  const { data: sc } = await s.supabase.from("scenarios").select("id,lang,level,persona,setting,goals").eq("id", b.scenarioId).eq("active", true).maybeSingle();
   if (!sc) return NextResponse.json({ error: "Сценарий не найден." }, { status: 404 });
   const level = s.profile.levels[sc.lang as "no" | "en"]?.speaking ?? sc.level;
   const ctx: ScenarioCtx = { persona: sc.persona, setting: sc.setting, goals: sc.goals, lang: sc.lang, level, uiLang: s.profile.ui_lang };

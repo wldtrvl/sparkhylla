@@ -7,11 +7,11 @@ import { requireSession } from "@/lib/session";
 export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id]">) {
   const s = await requireSession();
   const { id } = await params;
-  const { data: conv } = await s.supabase.from("conversations").select("*").eq("id", id).eq("user_id", s.user.id).maybeSingle();
+  const { data: conv } = await s.supabase.from("conversations").select("id,scenario_id,lang,goals_done,started_at,ended_at,summary").eq("id", id).eq("user_id", s.user.id).maybeSingle();
   if (!conv) notFound();
   const [{ data: sc }, { data: fixes }, { data: turns }] = await Promise.all([
     s.supabase.from("scenarios").select("title_ru,goals").eq("id", conv.scenario_id).single(),
-    s.supabase.from("feedback_items").select("*").eq("conversation_id", id).order("id"),
+    s.supabase.from("feedback_items").select("id,said,hint,correction,rule_label,status").eq("conversation_id", id).order("id"),
     s.supabase.from("conversation_turns").select("role,text").eq("conversation_id", id).order("id"),
   ]);
   const fb = conv.summary as Feedback | null;

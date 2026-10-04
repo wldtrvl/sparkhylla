@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ruleLabel } from "@/lib/learning/grammar";
-import { requireSession } from "@/lib/session";
+import { requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 
 const sum = (xs: (number | string | null)[]) => xs.reduce<number>((a, x) => a + Number(x ?? 0), 0);
@@ -20,7 +20,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
   const [act, words, reviews, convs, fb, llm, speech, models, events] = await Promise.all([
-    s.supabase.from("v_daily_activity").select("*").eq("user_id", uid).gte("day", since30.slice(0, 10)).order("day"),
+    s.supabase.rpc("daily_activity", { p_user: uid, p_since: since30.slice(0, 10) }),
     s.supabase.from("words").select("status,reps,lang,created_at").eq("user_id", uid),
     s.supabase.from("reviews").select("rating,mode,auto_correct,created_at").eq("user_id", uid).gte("created_at", since7),
     s.supabase.from("conversations").select("id,scenario_id,lang,goals_done,started_at,ended_at").eq("user_id", uid).gte("started_at", since30),
@@ -32,7 +32,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
   ]);
 
   const days = clock.dayKeys(30);
-  const minutesByDay = new Map((act.data ?? []).map((d) => [String(d.day), Number(d.minutes)]));
+  const minutesByDay = new Map(((act.data ?? []) as DailyActivity[]).map((d) => [String(d.day), Number(d.minutes)]));
   const minutes7 = sum(days.slice(-7).map((d) => minutesByDay.get(d) ?? 0));
   const maxMin = Math.max(30, ...days.map((d) => minutesByDay.get(d) ?? 0));
   const w = words.data ?? [];

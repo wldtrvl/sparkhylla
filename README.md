@@ -45,7 +45,7 @@ Tasks are `gloss`, `talk_open`, `tutor_turn`, `talk_help`, `talk_feedback` and `
 ## Setup (about 30 minutes)
 
 1. **Supabase**: create a project at supabase.com and open the SQL editor.
-   - Run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql`.
+   - Run every file in `supabase/migrations/` in number order (`0001_init.sql`, `0002_…`, …), then `supabase/seed.sql`.
    - Under Authentication → URL configuration, set Site URL to your domain (or `http://localhost:3000`) and add `<domain>/login` (and `http://localhost:3000/**` for local work) to redirect URLs. Sign-in links use the implicit flow so they work in any browser with the default email template.
 2. **Keys**: `cp .env.example .env.local` and fill in the Supabase URL and anon key, the service-role key, at least one AI key, and optionally speech keys.
    - Without STT she can type in conversations.
@@ -58,6 +58,8 @@ Tasks are `gloss`, `talk_open`, `tutor_turn`, `talk_help`, `talk_feedback` and `
    # Norwegian public-domain text downloaded as UTF-8 .txt from bokselskap.no or runeberg.org:
    npm run import:text -- eventyr.txt no "Norske folkeeventyr" "Asbjørnsen og Moe" "1841" "https://www.bokselskap.no/" "public domain" tale
    ```
+   The importers also store each book's vocabulary (`text_vocab`), which the library uses to compute "% of words you know" without loading book texts. After editing a book's text by hand in Supabase, run `npm run vocab:build` (add `-- --all` to rebuild every book).
+
    Modern books are added as `availability = 'external'` rows with a link (see seed.sql); she reads them in the library or Bokhylla and uses companion mode.
 5. **Link coach and learner** after both have signed in once:
    ```sql

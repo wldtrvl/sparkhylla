@@ -2,7 +2,7 @@ import Link from "next/link";
 import { GRAMMAR } from "@/lib/learning/grammar";
 import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
 import { libraryFor } from "@/lib/library";
-import { logEvent, requireSession } from "@/lib/session";
+import { logEvent, requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 
 function greeting(lang: "no" | "en") {
@@ -19,13 +19,13 @@ export default async function DeskPage() {
   const since = clock.daysAgo(6).slice(0, 10);
 
   const [quotes, due, library, scenarios, convs, fb, activity] = await Promise.all([
-    s.supabase.from("quotes").select("*").eq("active", true),
+    s.supabase.from("quotes").select("id,text,text_lang,translation_ru,translation_uk,author,author_note,origin,status,source").eq("active", true),
     s.supabase.from("words").select("term", { count: "exact" }).eq("user_id", s.user.id).eq("lang", lang).eq("status", "learning").lte("due", nowIso).limit(6),
     libraryFor(s, lang),
     s.supabase.from("scenarios").select("id,title_ru,level").eq("lang", lang).eq("active", true).order("sort"),
     s.supabase.from("conversations").select("scenario_id,started_at").eq("user_id", s.user.id).eq("lang", lang).order("started_at", { ascending: false }).limit(50),
     s.supabase.from("feedback_items").select("rule_key").eq("user_id", s.user.id).eq("lang", lang).gte("created_at", clock.daysAgo(14)),
-    s.supabase.from("v_daily_activity").select("day,minutes").eq("user_id", s.user.id).gte("day", since),
+    s.supabase.rpc("daily_activity", { p_user: s.user.id, p_since: since }),
   ]);
 
   const quote = quoteOfDay((quotes.data ?? []) as Quote[]);
@@ -40,7 +40,7 @@ export default async function DeskPage() {
   for (const r of fb.data ?? []) if (r.rule_key) counts[r.rule_key] = (counts[r.rule_key] ?? 0) + 1;
   const topKey = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const topic = GRAMMAR.find((g) => g.key === topKey) ?? GRAMMAR.find((g) => g.lang === lang)!;
-  const days = new Set((activity.data ?? []).filter((d) => Number(d.minutes) >= 1).map((d) => String(d.day)));
+  const days = new Set(((activity.data ?? []) as DailyActivity[]).filter((d) => Number(d.minutes) >= 1).map((d) => String(d.day)));
   const week = clock.dayKeys(7);
 
   logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id });

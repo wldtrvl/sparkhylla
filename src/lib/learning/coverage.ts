@@ -15,8 +15,13 @@ export const LEVEL_BAND: Record<string, number> = { A1: 700, A2: 1500, B1: 3000,
 const FREQ: Record<Lang, string[]> = { no: freqNo as string[], en: freqEn as string[] };
 const bandCache = new Map<string, Set<string>>();
 
+/** How many of the most frequent words count as known at a reading level. */
+export function bandSize(level: string): number {
+  return LEVEL_BAND[level.replace("+", "")] ?? 3000;
+}
+
 export function frequencyBand(lang: Lang, level: string): Set<string> {
-  const n = LEVEL_BAND[level.replace("+", "")] ?? 3000;
+  const n = bandSize(level);
   const key = `${lang}:${n}`;
   let s = bandCache.get(key);
   if (!s) {
@@ -55,13 +60,18 @@ export interface KnownSets {
   own: Set<string>; // learner's own words (any status) — lowercase forms and lemmas
 }
 
-export function isKnown(tok: Token, known: KnownSets): boolean {
-  if (known.own.has(tok.norm) || known.band.has(tok.norm)) return true;
-  // Capitalised mid-sentence → proper noun (names, places): don't count as unknown
-  if (!tok.sentenceStart && /^\p{Lu}/u.test(tok.text)) return true;
-  // hyphenated compounds: known if every part is known
-  if (tok.norm.includes("-")) return tok.norm.split("-").every((p) => known.own.has(p) || known.band.has(p));
+/** Capitalised mid-sentence → proper noun (names, places): never counted as unknown. */
+export const isProperNoun = (tok: Token) => !tok.sentenceStart && /^\p{Lu}/u.test(tok.text);
+
+/** A word form is known if it is hers or in her frequency band; hyphenated compounds if every part is. */
+export function isKnownForm(norm: string, known: KnownSets): boolean {
+  if (known.own.has(norm) || known.band.has(norm)) return true;
+  if (norm.includes("-")) return norm.split("-").every((p) => known.own.has(p) || known.band.has(p));
   return false;
+}
+
+export function isKnown(tok: Token, known: KnownSets): boolean {
+  return isProperNoun(tok) || isKnownForm(tok.norm, known);
 }
 
 export interface CoverageResult {
@@ -102,4 +112,61 @@ export function fitFromLevel(textLevel: string | null, readerLevel: string): Fit
   if (t <= r) return "fits";
   if (t === r + 1) return "stretch";
   return "later";
+}
+
+/* ---------- per-book vocabulary (stored in text_vocab, coverage computed in SQL by text_fit) ---------- */
+
+export interface VocabEntry {
+  form: string;
+  n: number;
+  /** 1-based position in the language's frequency list; null if not listed. Known at a level when rank <= bandSize. */
+  rank: number | null;
+  /** hyphenated compounds: the parts and their ranks, so "known if every part is known" works in SQL */
+  parts: string[] | null;
+  part_ranks: (number | null)[] | null;
+}
+
+export interface TextVocab {
+  tokens: number; // all word tokens
+  proper: number; // proper-noun tokens (always known)
+  entries: VocabEntry[];
+}
+
+const rankCache = new Map<Lang, Map<string, number>>();
+function rankOf(lang: Lang): Map<string, number> {
+  let m = rankCache.get(lang);
+  if (!m) {
+    m = new Map();
+    FREQ[lang].forEach((w, i) => m!.has(w) || m!.set(w, i + 1));
+    rankCache.set(lang, m);
+  }
+  return m;
+}
+
+/** Distinct word forms of a text with counts and frequency ranks: everything coverage needs, without the text. */
+export function buildVocab(text: string, lang: Lang): TextVocab {
+  const ranks = rankOf(lang);
+  const counts = new Map<string, number>();
+  let proper = 0;
+  const toks = tokenize(text);
+  for (const t of toks) {
+    if (isProperNoun(t)) proper++;
+    else counts.set(t.norm, (counts.get(t.norm) ?? 0) + 1);
+  }
+  const entries: VocabEntry[] = [];
+  for (const [form, n] of counts) {
+    const parts = form.includes("-") ? form.split("-") : null;
+    entries.push({ form, n, rank: ranks.get(form) ?? null, parts, part_ranks: parts ? parts.map((p) => ranks.get(p) ?? null) : null });
+  }
+  return { tokens: toks.length, proper, entries };
+}
+
+/** Same result as coverage(text, known), computed from the stored vocabulary. Mirrors SQL text_fit(). */
+export function coverageFromVocab(v: TextVocab, own: Set<string>, band: number): number {
+  const inBand = (r: number | null) => r != null && r <= band;
+  let known = v.proper;
+  for (const e of v.entries) {
+    if (inBand(e.rank) || own.has(e.form) || (e.parts && e.parts.every((p, i) => inBand(e.part_ranks![i]) || own.has(p)))) known += e.n;
+  }
+  return v.tokens ? known / v.tokens : 1;
 }
