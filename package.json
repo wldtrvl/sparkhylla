@@ -16,7 +16,8 @@
     "db:types": "bash scripts/gen-db-types.sh",
     "e2e": "playwright test",
     "import:batch": "tsx --conditions=react-server --env-file=.env.local scripts/import-batch.ts",
-    "import:voa": "tsx --env-file=.env.local scripts/import-voa.ts"
+    "import:voa": "tsx --env-file=.env.local scripts/import-voa.ts",
+    "import:wiki": "tsx --conditions=react-server --env-file=.env.local scripts/import-wiki.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
