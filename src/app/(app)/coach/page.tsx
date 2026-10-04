@@ -5,6 +5,14 @@ import { asRecord } from "@/lib/db-json";
 import { requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 
+const VITALS = [
+  ["TTFB", "Ответ сервера (TTFB)"],
+  ["FCP", "Первый текст (FCP)"],
+  ["LCP", "Страница готова (LCP)"],
+  ["INP", "Отклик на нажатие (INP)"],
+  ["CLS", "Сдвиги вёрстки (CLS)"],
+] as const;
+
 const sum = (xs: (number | string | null)[]) => xs.reduce<number>((a, x) => a + Number(x ?? 0), 0);
 
 export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
@@ -20,7 +28,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
   const since7 = clock.daysAgo(7);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  const [act, words, reviews, convs, fb, llm, speech, models, events] = await Promise.all([
+  const [act, words, reviews, convs, fb, llm, speech, models, events, vitals, errors] = await Promise.all([
     s.supabase.rpc("daily_activity", { p_user: uid, p_since: since30.slice(0, 10) }),
     s.supabase.from("words").select("status,reps,lang,created_at").eq("user_id", uid),
     s.supabase.from("reviews").select("rating,mode,auto_correct,created_at").eq("user_id", uid).gte("created_at", since7),
@@ -29,7 +37,9 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
     s.supabase.from("llm_calls").select("cost_usd").eq("user_id", uid).gte("created_at", monthStart),
     s.supabase.from("speech_calls").select("cost_usd").eq("user_id", uid).gte("created_at", monthStart),
     s.supabase.from("v_model_comparison").select("*").order("task"),
-    s.supabase.from("events").select("type,props,created_at").eq("user_id", uid).neq("type", "activity.heartbeat").order("created_at", { ascending: false }).limit(40),
+    s.supabase.from("events").select("type,props,created_at").eq("user_id", uid).neq("type", "activity.heartbeat").neq("type", "perf.vital").order("created_at", { ascending: false }).limit(40),
+    s.supabase.from("events").select("props").eq("user_id", uid).eq("type", "perf.vital").gte("created_at", since7).limit(5000),
+    s.supabase.from("app_errors").select("created_at,path,message,route_type").order("created_at", { ascending: false }).limit(10),
   ]);
 
   const days = clock.dayKeys(30);
@@ -195,6 +205,54 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
             </tbody>
           </table>
         </div>
+      </section>
+      <section className="card">
+        <h2 className="h2">Скорость и ошибки, 7 дней</h2>
+        <p className="small muted">Как быстро открываются страницы у неё на устройстве (медиана), и ошибки сервера. «Хорошо» — по меркам Google Web Vitals.</p>
+        <div className="table-wrap">
+          <table className="data num">
+            <thead>
+              <tr>
+                <th>Показатель</th>
+                <th>Медиана</th>
+                <th>Хорошо</th>
+                <th>Замеров</th>
+              </tr>
+            </thead>
+            <tbody>
+              {VITALS.map(([name, label]) => {
+                const xs = (vitals.data ?? []).map((v) => asRecord(v.props)).filter((p) => p.name === name);
+                const values = xs.map((p) => Number(p.value)).sort((a, b) => a - b);
+                if (!values.length) return null;
+                const median = values[Math.floor(values.length / 2)];
+                return (
+                  <tr key={name}>
+                    <td>{label}</td>
+                    <td>{name === "CLS" ? median.toFixed(3) : `${median} мс`}</td>
+                    <td>{Math.round((xs.filter((p) => p.rating === "good").length / xs.length) * 100)}%</td>
+                    <td>{xs.length}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {!vitals.data?.length && <p className="small muted">Замеров пока нет: они появятся, когда она откроет приложение после обновления.</p>}
+        </div>
+        <b>Ошибки сервера</b>
+        {(errors.data ?? []).length ? (
+          <div className="stack" style={{ gap: 6 }}>
+            {(errors.data ?? []).map((e, i) => (
+              <div key={i} className="small" style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 8 }}>
+                <span className="muted num">{fmtTime.format(new Date(e.created_at))}</span>
+                <span style={{ overflowWrap: "anywhere" }}>
+                  <b>{e.path}</b> <span className="muted">{e.message}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="small muted">{errors.error ? "Таблица ошибок ещё не создана (миграция 0008)." : "Ошибок не было."}</p>
+        )}
       </section>
     </>
   );

@@ -5,6 +5,39 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      app_errors: {
+        Row: {
+          created_at: string;
+          digest: string | null;
+          id: number;
+          message: string;
+          method: string | null;
+          path: string | null;
+          route_path: string | null;
+          route_type: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          digest?: string | null;
+          id?: number;
+          message: string;
+          method?: string | null;
+          path?: string | null;
+          route_path?: string | null;
+          route_type?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          digest?: string | null;
+          id?: number;
+          message?: string;
+          method?: string | null;
+          path?: string | null;
+          route_path?: string | null;
+          route_type?: string | null;
+        };
+        Relationships: [];
+      };
       coach_links: {
         Row: {
           coach_id: string;

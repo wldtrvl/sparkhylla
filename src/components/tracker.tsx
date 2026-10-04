@@ -6,6 +6,7 @@
  * in the last 2 minutes gives honest "minutes studied".
  */
 import { usePathname } from "next/navigation";
+import { useReportWebVitals } from "next/web-vitals";
 import { useEffect } from "react";
 
 type Ev = { type: string; props: Record<string, unknown>; path: string; ts: string; session_id: string };
@@ -48,8 +49,15 @@ function flush(useBeacon = false) {
   }
 }
 
+/** Real page speed as she experiences it (stable reference, so each metric is reported once). */
+function reportVital(m: { name: string; value: number; rating?: string; navigationType?: string }) {
+  if (!["TTFB", "FCP", "LCP", "INP", "CLS"].includes(m.name)) return;
+  track("perf.vital", { name: m.name, value: m.name === "CLS" ? Math.round(m.value * 1000) / 1000 : Math.round(m.value), rating: m.rating, nav: m.navigationType });
+}
+
 export function Tracker() {
   const path = usePathname();
+  useReportWebVitals(reportVital);
 
   useEffect(() => {
     track("page.view", { path });
