@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { coverColor, libraryFor, type LibraryItem } from "@/lib/library";
 import { logEvent, requireSession } from "@/lib/session";
+import { htmlLang } from "@/lib/text-format";
 
 const KINDS: Record<string, string> = { novel: "Романы", story: "Рассказы", tale: "Сказки", fable: "Басни", article: "Статьи", other: "Другое" };
 const GROUPS = [
@@ -13,7 +14,7 @@ function Book({ b }: { b: LibraryItem }) {
   return (
     <Link href={`/read/${b.id}`} className="book">
       <div className="cover" style={{ background: coverColor(b.id) }}>
-        <b lang={b.lang === "no" ? "nb" : "en"}>{b.title}</b>
+        <b lang={htmlLang(b.lang)}>{b.title}</b>
         <span>{b.author}</span>
       </div>
       <span className="muted small">
@@ -25,14 +26,14 @@ function Book({ b }: { b: LibraryItem }) {
           <div className="progress" style={{ flex: 1 }}>
             <i style={{ width: `${Math.round(b.coverage * 100)}%`, background: b.group === "fits" ? "var(--ok)" : "var(--brass)" }} />
           </div>
-          <span className="small num" style={{ fontWeight: 600 }}>
+          <span className="small num strong">
             {Math.round(b.coverage * 100)}%
           </span>
         </div>
       ) : (
         <span className="small muted">уровень {b.est_level ?? "?"}</span>
       )}
-      <div className="row" style={{ gap: 6 }}>
+      <div className="row gap-6">
         <span className="chip">{b.availability === "in_app" ? "Читать здесь" : "Библиотека / Bokhylla"}</span>
         {b.orthography === "old" && (
           <span className="chip" title="Написание до реформы 1938 года: sig, kunde, efter. Такие слова засчитываются по современному написанию.">
@@ -64,14 +65,14 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
 
   return (
     <>
-      <div className="stack" style={{ gap: 8 }}>
+      <div className="stack gap-8">
         <h1 className="display">Библиотека</h1>
         <p className="lead">
           Только настоящие тексты, без упрощений. Сначала — книги, в которых вы уже знаете 95–98% слов: так читать интересно, а не тяжело. Процент растёт вместе
           с вашим словарём.
         </p>
       </div>
-      <form className="row" role="search" action="/library" style={{ gap: 8 }}>
+      <form className="row gap-8" role="search" action="/library">
         {kind && <input type="hidden" name="kind" value={kind} />}
         <label htmlFor="lib-q" className="sr-only">
           Поиск по названию или автору
@@ -100,7 +101,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
       <div className="split">
         <div className="wide stack" style={{ gap: 28 }}>
           {!!reading.length && (
-            <section className="stack" style={{ gap: 14 }}>
+            <section className="stack gap-14">
               <h2 className="h2">Сейчас читаю</h2>
               <div className="grid-books">
                 {reading.map((b) => (
@@ -113,7 +114,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
             const list = items.filter((b) => b.group === g.key);
             if (!list.length) return null;
             return (
-              <section key={g.key} className="stack" style={{ gap: 14 }}>
+              <section key={g.key} className="stack gap-14">
                 <h2 className="h2">{g.title}</h2>
                 <div className="grid-books">
                   {list.map((b) => (
@@ -132,7 +133,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
             <div className="card">
               <span className="eyebrow">Автор</span>
               <b style={{ fontFamily: "var(--f-display)", fontSize: 30, lineHeight: 1.05 }}>{featured.author}</b>
-              <p style={{ lineHeight: 1.55 }}>{featured.author_note}</p>
+              <p className="relaxed">{featured.author_note}</p>
               <Link className="btn ghost" href={`/read/${featured.id}`}>
                 {featured.title}
               </Link>
@@ -140,7 +141,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
           )}
           <div className="card" style={{ background: "var(--cloth-soft)", border: 0 }}>
             <b>Откуда книги</b>
-            <p className="small" style={{ lineHeight: 1.55 }}>
+            <p className="small relaxed">
               Старые тексты, свободные от авторских прав, читаются прямо здесь. Современные книги — через библиотеку или Bokhylla Национальной библиотеки (бесплатно из
               Норвегии). Вставьте страницу, которую читаете, — и мы подсветим новые слова.
             </p>

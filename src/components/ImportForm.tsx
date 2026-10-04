@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { DraftStats } from "@/lib/import/analyze";
 import { TEXT_KINDS, type ImportDraft, type TextKind } from "@/lib/import/types";
-import { isHeading, paginate, paragraphText } from "@/lib/text-format";
+import { isHeading, paginate, paragraphText, WORD_PATTERN } from "@/lib/text-format";
 import { track } from "./tracker";
 
 const KIND_RU: Record<TextKind, string> = { novel: "Роман", story: "Рассказ", tale: "Сказки", fable: "Басни", article: "Статья", other: "Другое" };
@@ -22,8 +22,7 @@ interface Preview {
   fits: Fit[];
 }
 
-// same word pattern as tokenize() in coverage.ts (not imported: it would pull the frequency lists into the page)
-const words = (s: string) => (s.match(/\p{L}+(?:['’-]\p{L}+)*/gu) ?? []).length;
+const words = (s: string) => (s.match(new RegExp(WORD_PATTERN.source, "gu")) ?? []).length;
 
 /** Russian plural: plural(3, ["глава", "главы", "глав"]) → "главы" */
 function plural(n: number, [one, few, many]: [string, string, string]) {
@@ -114,7 +113,7 @@ export function ImportForm() {
             {busy === "preview" ? "Загружаю…" : "Загрузить"}
           </button>
         </form>
-        <div className="row small muted" style={{ gap: 8 }}>
+        <div className="row small muted gap-8">
           <label htmlFor="src-file" className="btn soft small" style={{ cursor: "pointer" }}>
             Или выбрать файл .txt / .epub
           </label>
@@ -150,8 +149,8 @@ export function ImportForm() {
 
       {p && (
         <div className="split">
-          <div className="wide stack" style={{ gap: 16 }}>
-            <div className="card" style={{ gap: 14 }}>
+          <div className="wide stack gap-16">
+            <div className="card gap-14">
               <span className="eyebrow">Описание</span>
               <div className="field">
                 <label htmlFor="m-title">Название</label>
@@ -199,10 +198,10 @@ export function ImportForm() {
               </div>
             </div>
 
-            <div className="card" style={{ gap: 10 }}>
+            <div className="card gap-10">
               <div className="row">
                 <span className="eyebrow">Текст</span>
-                <span className="small muted num" style={{ marginLeft: "auto" }}>
+                <span className="small muted num ml-auto">
                   абзацы {range[0] + 1}–{range[1] + 1} из {paras.length} · {trimmed.words.toLocaleString("ru-RU")} {plural(trimmed.words, ["слово", "слова", "слов"])} · {trimmed.pages} стр.
                 </span>
               </div>
@@ -256,10 +255,10 @@ export function ImportForm() {
             <div className="card">
               <span className="eyebrow">Насколько подходит</span>
               {p.fits.map((f) => (
-                <div key={f.name} className="row" style={{ gap: 8 }}>
+                <div key={f.name} className="row gap-8">
                   <b>{f.name}</b>
                   <span className="small muted">чтение {f.level}</span>
-                  <span className={`chip ${f.group === "fits" ? "ok" : "brass"}`} style={{ marginLeft: "auto" }}>
+                  <span className={`chip ${f.group === "fits" ? "ok" : "brass"} ml-auto`}>
                     {Math.round(f.coverage * 100)}% · {GROUP_RU[f.group]}
                   </span>
                 </div>

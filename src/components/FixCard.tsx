@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { speak } from "./audio";
+import { htmlLang } from "@/lib/text-format";
 
 export interface FixItem {
   id: number;
@@ -15,7 +16,7 @@ export interface FixItem {
 export function FixCard({ item, lang }: { item: FixItem; lang: "no" | "en" }) {
   const [status, setStatus] = useState(item.status);
   const [failed, setFailed] = useState(false);
-  const langAttr = lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(lang);
   async function mark(s: "self_fixed" | "revealed") {
     setStatus(s);
     setFailed(false);
@@ -27,7 +28,7 @@ export function FixCard({ item, lang }: { item: FixItem; lang: "no" | "en" }) {
   }
   return (
     <div className="card">
-      {item.rule_label && <span className="chip brass" style={{ alignSelf: "flex-start" }}>{item.rule_label}</span>}
+      {item.rule_label && <span className="chip brass self-start">{item.rule_label}</span>}
       <span className="small muted">Вы сказали</span>
       <span lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 19 }}>
         {item.said}
@@ -50,7 +51,7 @@ export function FixCard({ item, lang }: { item: FixItem; lang: "no" | "en" }) {
           <span lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 19, color: "var(--ok)" }}>
             {item.correction}
           </span>
-          <button type="button" className="btn soft small" style={{ marginLeft: "auto" }} onClick={() => speak(item.correction, lang, { rate: 0.85 })}>
+          <button type="button" className="btn soft small ml-auto" onClick={() => speak(item.correction, lang, { rate: 0.85 })}>
             Слушать и повторить
           </button>
         </div>

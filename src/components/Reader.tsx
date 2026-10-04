@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isHeading, paragraphText } from "@/lib/text-format";
+import { htmlLang, isHeading, paragraphText, WORD_PATTERN } from "@/lib/text-format";
 import { speak, speakToEnd, stopAudio, ttsUrl } from "./audio";
 import { track } from "./tracker";
 
@@ -16,7 +16,7 @@ interface Gloss {
   is_phrase?: boolean;
 }
 
-const WORD = /[\p{L}]+(?:['’-][\p{L}]+)*/gu;
+const WORD = new RegExp(WORD_PATTERN.source, "gu");
 
 function pieces(p: string) {
   const out: { t: string; word: boolean }[] = [];
@@ -55,7 +55,7 @@ export function Reader(props: {
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [err, setErr] = useState("");
   const [saved, setSaved] = useState<"" | "learning" | "known">("");
-  const langAttr = props.lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(props.lang);
 
   const texts = useMemo(() => props.paragraphs.map(paragraphText), [props.paragraphs]);
   const paras = useMemo(() => texts.map(pieces), [texts]);
@@ -290,7 +290,7 @@ export function Reader(props: {
               <b lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 28, minWidth: 0, overflowWrap: "anywhere" }}>
                 {sel.term}
               </b>
-              <button type="button" className="btn soft small" style={{ marginLeft: "auto" }} onClick={() => speak(sel.term, props.lang, { rate: 0.8 })}>
+              <button type="button" className="btn soft small ml-auto" onClick={() => speak(sel.term, props.lang, { rate: 0.8 })}>
                 Слушать
               </button>
               <button type="button" className="gloss-close" aria-label="Закрыть перевод" onClick={() => setSel(null)}>
@@ -319,11 +319,11 @@ export function Reader(props: {
                   </span>
                 )}
                 {gloss.note && <span className="small muted">{gloss.note}</span>}
-                <span className="small muted gloss-sentence" lang={langAttr} style={{ fontFamily: "var(--f-read)", fontStyle: "italic" }}>
+                <span className="small muted gloss-sentence read-italic" lang={langAttr}>
                   «{sel.sentence}»
                 </span>
                 {err && state !== "error" && <span className="error">{err}</span>}
-                <div className="row" style={{ gap: 8 }}>
+                <div className="row gap-8">
                   <button type="button" className="btn" disabled={saved !== ""} onClick={() => save("learning")}>
                     {saved === "learning" ? "В моих словах" : "Сохранить"}
                   </button>

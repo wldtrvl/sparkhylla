@@ -4,6 +4,7 @@ import { FixCard, type FixItem } from "@/components/FixCard";
 import { asLang } from "@/lib/db-json";
 import type { Feedback } from "@/lib/ai/prompts";
 import { requireSession } from "@/lib/session";
+import { htmlLang } from "@/lib/text-format";
 
 export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id]">) {
   const s = await requireSession();
@@ -17,21 +18,21 @@ export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id
   ]);
   const fb = conv.summary as Feedback | null;
   const minutes = conv.ended_at ? Math.max(1, Math.round((Date.parse(conv.ended_at) - Date.parse(conv.started_at)) / 60000)) : null;
-  const langAttr = conv.lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(asLang(conv.lang));
 
   return (
     <>
-      <div className="stack" style={{ gap: 6 }}>
+      <div className="stack gap-6">
         <span className="eyebrow">
           Разговор завершён{minutes ? ` · ${minutes} мин` : ""} · {sc?.title_ru}
         </span>
-        <h1 className="display" style={{ fontSize: "clamp(30px,3.4vw,42px)" }}>
+        <h1 className="display display-sm">
           Цели: {conv.goals_done.length} из {(sc?.goals as unknown[] | undefined)?.length ?? "?"}
         </h1>
         {fb?.summary && <p className="lead">{fb.summary}</p>}
       </div>
       <div className="split">
-        <div className="wide stack" style={{ gap: 16 }}>
+        <div className="wide stack gap-16">
           {!!fb?.wins?.length && (
             <div className="card" style={{ background: "var(--ok-soft)", border: 0 }}>
               <b>Что получилось</b>
@@ -71,7 +72,7 @@ export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id
           <details className="card">
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>Весь разговор</summary>
             {(turns ?? []).map((t, i) => (
-              <p key={i} lang={langAttr} style={{ fontFamily: "var(--f-read)" }}>
+              <p key={i} lang={langAttr} className="read">
                 <b className="small muted">{t.role === "tutor" ? "Собеседник" : "Вы"}:</b> {t.text}
               </p>
             ))}

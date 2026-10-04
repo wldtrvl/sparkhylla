@@ -8,8 +8,8 @@ export default async function ImportPage() {
   if (s.profile.role !== "coach") redirect("/");
   return (
     <>
-      <div className="stack" style={{ gap: 6 }}>
-        <Link href="/coach" className="small" style={{ fontWeight: 600 }}>
+      <div className="stack gap-6">
+        <Link href="/coach" className="small strong">
           ← Кабинет помощника
         </Link>
         <h1 className="display">Добавить книгу</h1>

@@ -4,6 +4,7 @@ import { checkAnswer, type Verdict } from "@/lib/learning/answer";
 import { sendForTranscript, speak, useRecorder } from "./audio";
 import { RecLevel } from "./RecLevel";
 import { track } from "./tracker";
+import { htmlLang } from "@/lib/text-format";
 
 type Answer = "forgot" | "hard" | "good";
 
@@ -36,7 +37,7 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
   const [msg, setMsg] = useState("");
   const shownAt = useRef(0);
   const rec = useRecorder();
-  const langAttr = lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(lang);
   const card = queue[i];
 
   useEffect(() => {
@@ -175,7 +176,7 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
 
       {!revealed ? (
         <>
-          <div className="row" style={{ gap: 18 }}>
+          <div className="row gap-18">
             <button type="button" className={`mic${rec.recording ? " rec" : ""}`} aria-label={rec.recording ? "Остановить запись" : "Ответить голосом"} onClick={voice} disabled={busy}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />

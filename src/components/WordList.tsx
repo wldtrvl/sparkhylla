@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { speak } from "./audio";
 import { track } from "./tracker";
+import { htmlLang } from "@/lib/text-format";
 
 export interface WordRow {
   id: string;
@@ -89,7 +90,7 @@ export function WordList({ lang, words }: { lang: "no" | "en"; words: WordRow[] 
                   <tr key={w.id}>
                     <td>
                       <button type="button" onClick={() => speak(w.term, lang)} style={{ border: 0, background: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-                        <b lang={lang === "no" ? "nb" : "en"} style={{ fontFamily: "var(--f-read)" }}>
+                        <b lang={htmlLang(lang)} className="read">
                           {w.term}
                         </b>
                       </button>
@@ -124,7 +125,7 @@ export function WordList({ lang, words }: { lang: "no" | "en"; words: WordRow[] 
         <span className="small muted">Услышали на работе, в магазине, в письме? Запишите — оно попадёт в повторение.</span>
         <div className="field">
           <label htmlFor="t">Слово или фраза</label>
-          <input id="t" className="input" lang={lang === "no" ? "nb" : "en"} value={term} onChange={(e) => setTerm(e.target.value)} />
+          <input id="t" className="input" lang={htmlLang(lang)} value={term} onChange={(e) => setTerm(e.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="tr">Перевод</label>
@@ -132,7 +133,7 @@ export function WordList({ lang, words }: { lang: "no" | "en"; words: WordRow[] 
         </div>
         <div className="field">
           <label htmlFor="c">Пример (необязательно)</label>
-          <input id="c" className="input" lang={lang === "no" ? "nb" : "en"} value={ctx} onChange={(e) => setCtx(e.target.value)} />
+          <input id="c" className="input" lang={htmlLang(lang)} value={ctx} onChange={(e) => setCtx(e.target.value)} />
         </div>
         <button className="btn soft" type="submit" disabled={busy}>
           {busy ? "Сохраняю…" : "Добавить"}
@@ -163,7 +164,7 @@ function WordEditor({ lang, word, onDone }: { lang: "no" | "en"; word: WordRow; 
 
   return (
     <div className="stack" style={{ gap: 10, padding: "4px 0" }}>
-      <b lang={lang === "no" ? "nb" : "en"} style={{ fontFamily: "var(--f-read)", fontSize: 18 }}>
+      <b lang={htmlLang(lang)} style={{ fontFamily: "var(--f-read)", fontSize: 18 }}>
         {word.term}
       </b>
       <div className="field">
@@ -183,7 +184,7 @@ function WordEditor({ lang, word, onDone }: { lang: "no" | "en"; word: WordRow; 
         </button>
       </div>
       {err && <p className="error">{err}</p>}
-      <div className="row" style={{ gap: 8 }}>
+      <div className="row gap-8">
         <button type="button" className="btn small" disabled={busy} onClick={() => send("PATCH", { id: word.id, translation: tr, note: note || null, status })}>
           Сохранить
         </button>

@@ -5,6 +5,7 @@
  * Research on reading suggests ~95–98% known words for comfortable independent reading.
  */
 import freqNo from "@/data/freq-no.json";
+import { WORD_PATTERN } from "@/lib/text-format";
 import freqEn from "@/data/freq-en.json";
 
 export type Lang = "no" | "en";
@@ -48,7 +49,7 @@ export interface Token {
   sentenceStart: boolean;
 }
 
-const WORD = /[\p{L}]+(?:['’-][\p{L}]+)*/gu;
+const WORD = new RegExp(WORD_PATTERN.source, "gu");
 
 /** Splits text into word tokens with positions (non-words are the gaps between them). */
 export function tokenize(text: string): Token[] {

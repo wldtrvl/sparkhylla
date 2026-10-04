@@ -22,7 +22,7 @@ export function ExplainButton({ topicKey }: { topicKey: string }) {
   return (
     <>
       {!text && (
-        <button type="button" className="btn ghost small" onClick={go} disabled={busy} style={{ alignSelf: "flex-start" }}>
+        <button type="button" className="btn ghost small self-start" onClick={go} disabled={busy}>
           {busy ? "Готовлю объяснение…" : "Объяснить подробнее и дать упражнение"}
         </button>
       )}

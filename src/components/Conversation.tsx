@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { speak, stopAudio, transcribeRecording, useRecorder } from "./audio";
 import { RecLevel } from "./RecLevel";
 import { track } from "./tracker";
+import { htmlLang } from "@/lib/text-format";
 
 interface Props {
   scenario: { id: string; title: string; lang: "no" | "en"; level: string; persona: string; goals: { id: string; ru: string }[] };
@@ -23,7 +24,7 @@ export function Conversation({ scenario, serverStt }: Props) {
   const [typed, setTyped] = useState("");
   const rec = useRecorder();
   const started = useRef(false);
-  const langAttr = scenario.lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(scenario.lang);
   const who = scenario.persona.split(",")[0];
 
   useEffect(() => {
@@ -165,14 +166,14 @@ export function Conversation({ scenario, serverStt }: Props) {
 
   return (
     <>
-      <div className="row" style={{ alignItems: "flex-end" }}>
-        <div className="stack" style={{ gap: 4 }}>
+      <div className="row items-end">
+        <div className="stack gap-4">
           <span className="eyebrow">Ролевая игра · {scenario.level}</span>
-          <h1 className="display" style={{ fontSize: "clamp(30px,3.4vw,42px)" }}>
+          <h1 className="display display-sm">
             {scenario.title}
           </h1>
         </div>
-        <button type="button" className="btn ghost" style={{ marginLeft: "auto" }} onClick={finish} disabled={busy === "finish"}>
+        <button type="button" className="btn ghost ml-auto" onClick={finish} disabled={busy === "finish"}>
           {busy === "finish" ? "Готовлю разбор…" : "Закончить и разобрать"}
         </button>
       </div>
@@ -213,7 +214,7 @@ export function Conversation({ scenario, serverStt }: Props) {
                     <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
                   </svg>
                 </button>
-                <div className="stack" style={{ gap: 4 }}>
+                <div className="stack gap-4">
                   <b>{rec.recording ? "Говорите… нажмите ещё раз, когда закончите" : "Нажмите на микрофон и говорите"}</b>
                   {rec.recording && <RecLevel level={rec.level} seconds={rec.seconds} />}
                   <span className="small muted">
@@ -269,7 +270,7 @@ export function Conversation({ scenario, serverStt }: Props) {
               {busy === "help" ? "Думаю…" : "Помоги сказать"}
             </button>
             {help && (
-              <div className="stack" style={{ gap: 4 }}>
+              <div className="stack gap-4">
                 <b lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 18 }}>
                   {help.phrase}
                 </b>

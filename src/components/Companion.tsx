@@ -29,7 +29,7 @@ export function Companion({ lang, textId }: { lang: "no" | "en"; textId: string 
       <div className="page">
         <div className="row">
           <span className="chip ok">вы знаете {Math.round(result.coverage * 100)}% слов на этой странице</span>
-          <button type="button" className="btn soft small" style={{ marginLeft: "auto" }} onClick={() => setResult(null)}>
+          <button type="button" className="btn soft small ml-auto" onClick={() => setResult(null)}>
             Вставить другую страницу
           </button>
         </div>

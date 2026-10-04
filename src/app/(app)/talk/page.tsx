@@ -13,23 +13,23 @@ export default async function TalkIndex() {
 
   return (
     <>
-      <div className="stack" style={{ gap: 8 }}>
+      <div className="stack gap-8">
         <h1 className="display">Разговор</h1>
         <p className="lead">Ролевые игры из жизни. Говорите голосом; ошибки не исправляются во время разговора — мы разберём их в конце, по одной.</p>
       </div>
       <div className="grid">
         {(sc.data ?? []).map((x) => (
           <div key={x.id} className="card">
-            <span className="chip" style={{ alignSelf: "flex-start" }}>
+            <span className="chip self-start">
               {x.level}
             </span>
-            <b style={{ fontFamily: "var(--f-read)", fontSize: 20 }}>{x.title_ru}</b>
+            <b className="title-read">{x.title_ru}</b>
             <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
               {(x.goals as { ru: string }[]).map((g) => (
                 <li key={g.ru}>{g.ru}</li>
               ))}
             </ul>
-            <Link className="btn" href={`/talk/${x.id}`} style={{ marginTop: "auto" }}>
+            <Link className="btn mt-auto" href={`/talk/${x.id}`}>
               Начать
             </Link>
           </div>

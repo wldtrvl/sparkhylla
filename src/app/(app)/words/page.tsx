@@ -16,7 +16,7 @@ export default async function WordsPage() {
 
   return (
     <>
-      <div className="row" style={{ alignItems: "flex-end" }}>
+      <div className="row items-end">
         <h1 className="display">Мои слова</h1>
         <span className="muted" style={{ paddingBottom: 6 }}>
           учу {learning} · знаю {known}

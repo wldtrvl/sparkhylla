@@ -4,6 +4,7 @@ import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
 import { libraryFor } from "@/lib/library";
 import { logEvent, requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
+import { htmlLang } from "@/lib/text-format";
 
 const WEEKDAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
@@ -52,10 +53,10 @@ export default async function DeskPage() {
 
   return (
     <>
-      <div className="row" style={{ alignItems: "flex-end" }}>
-        <div className="stack" style={{ gap: 4 }}>
+      <div className="row items-end">
+        <div className="stack gap-4">
           <span className="eyebrow">{date}</span>
-          <h1 className="display" lang={lang === "no" ? "nb" : "en"}>
+          <h1 className="display" lang={htmlLang(lang)}>
             {greeting(lang)}
             {name ? `, ${name}` : ""}
           </h1>
@@ -78,7 +79,7 @@ export default async function DeskPage() {
           </span>
           <blockquote lang={quote.text_lang === "no" ? "nb" : quote.text_lang}>«{quote.text}»</blockquote>
           <span className="muted">{s.profile.ui_lang === "uk" && quote.translation_uk ? quote.translation_uk : quote.translation_ru}</span>
-          <figcaption className="row" style={{ gap: 10 }}>
+          <figcaption className="row gap-10">
             <b>{quote.author}</b>
             {quote.author_note && <span className="muted small">{quote.author_note}</span>}
             {quote.status === "attributed" && <span className="chip">приписывается</span>}
@@ -96,11 +97,11 @@ export default async function DeskPage() {
             <span className="muted">{dueCount ? "ждут сегодня" : "на сегодня всё"}</span>
           </div>
           {!!due.data?.length && (
-            <span className="muted small" lang={lang === "no" ? "nb" : "en"} style={{ fontFamily: "var(--f-read)", fontStyle: "italic" }}>
+            <span className="muted small read-italic" lang={htmlLang(lang)}>
               {due.data.map((w) => w.term).join(" · ")}
             </span>
           )}
-          <Link className="btn" href="/words" style={{ marginTop: "auto" }}>
+          <Link className="btn mt-auto" href="/words">
             {dueCount ? "Начать повторение" : "Мои слова"}
           </Link>
         </div>
@@ -108,13 +109,13 @@ export default async function DeskPage() {
         {reading && (
           <div className="card">
             <span className="eyebrow">{reading.progress && !reading.progress.finished ? "Сейчас читаю" : "Предлагаю почитать"}</span>
-            <b style={{ fontFamily: "var(--f-read)", fontSize: 20 }}>{reading.title}</b>
+            <b className="title-read">{reading.title}</b>
             <span className="muted small">
               {reading.author}
               {reading.year ? ` · ${reading.year}` : ""} · оригинал
             </span>
             {reading.coverage != null && <span className="chip ok">вы знаете {Math.round(reading.coverage * 100)}% слов</span>}
-            <Link className="btn" href={`/read/${reading.id}`} style={{ marginTop: "auto" }}>
+            <Link className="btn mt-auto" href={`/read/${reading.id}`}>
               {reading.progress ? "Продолжить чтение" : "Открыть"}
             </Link>
           </div>
@@ -123,9 +124,9 @@ export default async function DeskPage() {
         {scenario && (
           <div className="card">
             <span className="eyebrow">Разговор дня</span>
-            <b style={{ fontFamily: "var(--f-read)", fontSize: 20 }}>{scenario.title_ru}</b>
+            <b className="title-read">{scenario.title_ru}</b>
             <span className="muted small">Голосом, около 5 минут. Ошибки разберём в конце, спокойно.</span>
-            <Link className="btn ghost" href={`/talk/${scenario.id}`} style={{ marginTop: "auto" }}>
+            <Link className="btn ghost mt-auto" href={`/talk/${scenario.id}`}>
               Начать разговор
             </Link>
           </div>

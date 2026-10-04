@@ -69,9 +69,9 @@ function LoginForm() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 16 }}>
+    <main className="center-screen">
       <div className="card" style={{ width: "100%", maxWidth: 440, padding: 32, gap: 18 }}>
-        <div className="stack" style={{ gap: 4 }}>
+        <div className="stack gap-4">
           <span className="display">Språkhylla</span>
           <span className="muted">домашняя языковая библиотека</span>
         </div>
@@ -79,7 +79,7 @@ function LoginForm() {
         {state === "signing_in" ? (
           <p>Вхожу…</p>
         ) : state === "sent" ? (
-          <div className="stack" style={{ gap: 14 }}>
+          <div className="stack gap-14">
             <p>
               Мы отправили ссылку на <b>{email}</b>. Откройте письмо и нажмите на ссылку — пароль не нужен. Ссылка действует один раз.
             </p>
@@ -88,7 +88,7 @@ function LoginForm() {
             </button>
           </div>
         ) : (
-          <form onSubmit={send} className="stack" style={{ gap: 14 }}>
+          <form onSubmit={send} className="stack gap-14">
             <div className="field">
               <label htmlFor="email">Ваш e-mail</label>
               <input id="email" className="input" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />

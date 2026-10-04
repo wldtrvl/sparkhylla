@@ -27,7 +27,7 @@ export function SettingsForm({ initial }: { initial: { display_name: string; ui_
 
   return (
     <form className="split" onSubmit={save}>
-      <div className="wide card" style={{ gap: 18 }}>
+      <div className="wide card gap-18">
         <div className="field">
           <label htmlFor="name">Как к вам обращаться</label>
           <input id="name" className="input" value={v.display_name} onChange={(e) => setV({ ...v, display_name: e.target.value })} />
@@ -73,7 +73,7 @@ export function SettingsForm({ initial }: { initial: { display_name: string; ui_
       <div className="side">
         <div className="card">
           <b>Уровень чтения</b>
-          <p className="small muted" style={{ lineHeight: 1.55 }}>
+          <p className="small muted relaxed">
             От него зависит, какие книги библиотека считает подходящими. Если тексты кажутся слишком трудными — понизьте уровень; слишком лёгкими — повысьте.
           </p>
         </div>

@@ -62,12 +62,12 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
 
   return (
     <>
-      <div className="row" style={{ alignItems: "flex-end" }}>
-        <div className="stack" style={{ gap: 4 }}>
+      <div className="row items-end">
+        <div className="stack gap-4">
           <span className="eyebrow">Кабинет помощника</span>
           <h1 className="display">{learners?.find((l) => l.user_id === uid)?.display_name || "Ученица"}</h1>
         </div>
-        <div className="row" style={{ marginLeft: "auto" }}>
+        <div className="row ml-auto">
           {(learners ?? []).length > 1 &&
             learners!.map((l) => (
               <Link key={l.user_id} className="btn soft small" href={`/coach?u=${l.user_id}`}>
@@ -95,7 +95,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
           ["Разговоров за 30 дней", (convs.data ?? []).length, `голосом: ${r.filter((x) => x.mode === "voice").length} ответов в повторении`],
           ["Расходы на AI в этом месяце", `$${spend.toFixed(2)}`, "модели + речь"],
         ].map(([label, value, sub]) => (
-          <div key={String(label)} className="card" style={{ gap: 4 }}>
+          <div key={String(label)} className="card gap-4">
             <span className="small muted">{label}</span>
             <span className="num" style={{ fontFamily: "var(--f-display)", fontSize: 34, fontWeight: 600 }}>
               {value}
@@ -240,7 +240,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
         </div>
         <b>Ошибки сервера</b>
         {(errors.data ?? []).length ? (
-          <div className="stack" style={{ gap: 6 }}>
+          <div className="stack gap-6">
             {(errors.data ?? []).map((e, i) => (
               <div key={i} className="small" style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 8 }}>
                 <span className="muted num">{fmtTime.format(new Date(e.created_at))}</span>

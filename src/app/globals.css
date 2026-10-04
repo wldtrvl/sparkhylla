@@ -261,3 +261,12 @@ table.data td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical
 .week-day.today { font-weight: 700; color: var(--ink); }
 .week-day .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--muted); }
 .week-day .dot.on { background: var(--cloth); border-color: var(--cloth); }
+
+/* ---------- small layout and type helpers (last, so they win over .row/.stack gaps) ---------- */
+.gap-4 { gap: 4px; } .gap-6 { gap: 6px; } .gap-8 { gap: 8px; } .gap-10 { gap: 10px; } .gap-14 { gap: 14px; } .gap-16 { gap: 16px; } .gap-18 { gap: 18px; }
+.ml-auto { margin-left: auto; } .mt-auto { margin-top: auto; } .items-end { align-items: flex-end; } .self-start { align-self: flex-start; }
+.strong { font-weight: 600; } .relaxed { line-height: 1.55; } .text-center { text-align: center; }
+.read { font-family: var(--f-read); } .read-italic { font-family: var(--f-read); font-style: italic; }
+.title-read { font-family: var(--f-read); font-size: 20px; }
+.display-sm { font-size: clamp(30px, 3.4vw, 42px); }
+.center-screen { min-height: 100vh; display: grid; place-items: center; padding: 16px; }

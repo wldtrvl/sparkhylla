@@ -1,6 +1,7 @@
 import { ExplainButton } from "@/components/ExplainButton";
 import { GRAMMAR } from "@/lib/learning/grammar";
 import { requireSession } from "@/lib/session";
+import { htmlLang } from "@/lib/text-format";
 
 export default async function GrammarPage() {
   const s = await requireSession();
@@ -15,28 +16,28 @@ export default async function GrammarPage() {
   }
   const topics = GRAMMAR.filter((g) => g.lang === lang);
   const levels = Array.from(new Set(topics.map((t) => t.level)));
-  const langAttr = lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(lang);
 
   return (
     <>
-      <div className="stack" style={{ gap: 8 }}>
+      <div className="stack gap-8">
         <h1 className="display">Грамматика</h1>
         <p className="lead">Темы по уровням. Отмечены те, где у вас были ошибки в разговорах — с них полезнее всего начать.</p>
       </div>
       {levels.map((lv) => (
-        <section key={lv} className="stack" style={{ gap: 14 }}>
+        <section key={lv} className="stack gap-14">
           <h2 style={{ fontFamily: "var(--f-display)", fontSize: 28, color: "var(--cloth)" }}>{lv}</h2>
           <div className="grid">
             {topics
               .filter((t) => t.level === lv)
               .map((t) => (
                 <article key={t.key} id={t.key} className="card" style={{ scrollMarginTop: 24 }}>
-                  <div className="row" style={{ gap: 8 }}>
+                  <div className="row gap-8">
                     <b style={{ fontSize: 18 }}>{t.title}</b>
                     {counts[t.key] && <span className="chip brass">в разговорах: {counts[t.key].all}</span>}
                   </div>
                   <p style={{ lineHeight: 1.6 }}>{t.body}</p>
-                  <div className="stack" style={{ gap: 6 }}>
+                  <div className="stack gap-6">
                     {t.examples.map(([o, tr]) => (
                       <div key={o}>
                         <span lang={langAttr} style={{ fontFamily: "var(--f-read)", fontWeight: 600 }}>

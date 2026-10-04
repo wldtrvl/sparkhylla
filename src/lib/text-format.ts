@@ -3,6 +3,12 @@
  * heading (a tale or chapter title): it starts a new page and is shown as a title, not as a paragraph.
  */
 export const HEADING_PREFIX = "## ";
+
+/** One word as the app counts it: letters, joined by an apostrophe or hyphen (hus, ku-ku, don't). */
+export const WORD_PATTERN = /[\p{L}]+(?:['’-][\p{L}]+)*/gu;
+
+/** The HTML lang attribute for a learning language (Norwegian Bokmål is "nb"). */
+export const htmlLang = (lang: "no" | "en") => (lang === "no" ? "nb" : "en");
 export const isHeading = (p: string) => p.startsWith(HEADING_PREFIX);
 export const paragraphText = (p: string) => (isHeading(p) ? p.slice(HEADING_PREFIX.length) : p);
 

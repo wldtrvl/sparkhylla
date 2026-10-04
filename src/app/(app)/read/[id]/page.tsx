@@ -5,7 +5,7 @@ import { PageNav } from "@/components/PageNav";
 import { Reader } from "@/components/Reader";
 import { coverage, nameForms, tokenize } from "@/lib/learning/coverage";
 import { TEXT_COLUMNS, type TextRow } from "@/lib/library";
-import { paginate } from "@/lib/text-format";
+import { paginate, htmlLang } from "@/lib/text-format";
 import { requireSession, wordState } from "@/lib/session";
 
 export default async function ReadPage({ params, searchParams }: PageProps<"/read/[id]">) {
@@ -15,7 +15,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
   const { data } = await s.supabase.from("texts").select(TEXT_COLUMNS).eq("id", id).maybeSingle();
   if (!data) notFound();
   const t = data as unknown as TextRow;
-  const langAttr = t.lang === "no" ? "nb" : "en";
+  const langAttr = htmlLang(t.lang);
 
   const header = (
     <div className="stack" style={{ gap: 6, textAlign: "center", alignItems: "center" }}>
@@ -32,7 +32,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
   if (t.availability === "external" || !t.body) {
     return (
       <>
-        <Link href="/library" style={{ fontWeight: 600 }}>
+        <Link href="/library" className="strong">
           ← Библиотека
         </Link>
         <div className="page">
@@ -45,7 +45,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
               </a>
             )}
           </div>
-          <p className="small muted" style={{ textAlign: "center" }}>
+          <p className="small muted text-center">
             Эта книга защищена авторским правом, поэтому её текст не хранится здесь. Читайте её в библиотеке или в Bokhylla, а сюда вставляйте страницу, которую читаете сейчас.
           </p>
         </div>
@@ -68,10 +68,10 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
   return (
     <>
       <div className="row">
-        <Link href="/library" style={{ fontWeight: 600 }}>
+        <Link href="/library" className="strong">
           ← Библиотека
         </Link>
-        <span className="chip ok" style={{ marginLeft: "auto" }}>
+        <span className="chip ok ml-auto">
           вы знаете {Math.round(whole.coverage * 100)}% слов этой книги
         </span>
       </div>
@@ -88,7 +88,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
         />
         <PageNav textId={t.id} page={pageIdx} total={pages.length} coverage={whole.coverage} />
       </div>
-      <p className="small muted" style={{ textAlign: "center" }}>
+      <p className="small muted text-center">
         {t.license ? `Текст: ${t.license}.` : ""} {t.source_url ? <a href={t.source_url} target="_blank" rel="noopener noreferrer">Источник</a> : null}
       </p>
     </>
