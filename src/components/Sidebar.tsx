@@ -6,6 +6,11 @@ import { track } from "./tracker";
 
 const ICONS: Record<string, React.ReactNode> = {
   desk: <path d="M3 10h18M5 10v9M19 10v9M8 6h8l2 4H6z" />,
+  path: (
+    <>
+      <path d="M5 21V4M5 4h11l-2 3.5L16 11H5" />
+    </>
+  ),
   library: (
     <>
       <path d="M4 19V5M8 19V5M12 19l3-14 4 1-3 14" />
@@ -75,9 +80,10 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
   // On a phone the bottom bar shows the four daily sections (short labels); the rest sit under «Ещё».
   const items = [
     { href: "/", label: "Мой стол", short: "Стол", icon: "desk", primary: true },
+    { href: "/path", label: "Мой путь", short: "Путь", icon: "path", primary: true },
     { href: "/library", label: "Библиотека", short: "Книги", icon: "library", primary: true },
     { href: "/words", label: "Мои слова", short: "Слова", icon: "words", primary: true },
-    { href: "/talk", label: "Разговор", short: "Разговор", icon: "talk", primary: true },
+    { href: "/talk", label: "Разговор", short: "Разговор", icon: "talk", primary: false },
     { href: "/grammar", label: "Грамматика", short: "Грамматика", icon: "grammar", primary: false },
     ...(isCoach ? [{ href: "/coach", label: "Помощник", short: "Помощник", icon: "coach", primary: false }] : []),
   ];

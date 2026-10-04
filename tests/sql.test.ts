@@ -97,6 +97,12 @@ describe("migrations and SQL functions", () => {
     expect((await db.query(`select * from text_fit('no', 3000, '{}')`)).rows.some((r) => (r as { text_id: string }).text_id === id)).toBe(false);
   });
 
+  it("accepts news with a recording (0010)", async () => {
+    const { rows } = await db.query<{ id: string }>(`insert into texts (lang, title, author, kind, body, audio_url) values ('en', 'N', 'VOA', 'news', 'Text.', 'https://x/a.mp3') returning id`);
+    expect(rows).toHaveLength(1);
+    await expect(db.query(`insert into texts (lang, title, author, kind, body) values ('en', 'N2', 'VOA', 'podcast', 'Text.')`)).rejects.toThrow(/texts_kind_check/);
+  });
+
   it("daily_activity counts only events since the date, by Oslo day", async () => {
     await db.query(
       `insert into events (user_id, type, created_at) values

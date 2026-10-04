@@ -14,6 +14,8 @@ interface Gloss {
   note?: string | null;
   norwegian?: string | null;
   is_phrase?: boolean;
+  parts?: { part: string; meaning: string }[];
+  examples?: { text: string; translation: string }[];
 }
 
 const WORD = new RegExp(WORD_PATTERN.source, "gu");
@@ -164,7 +166,10 @@ export function Reader(props: {
     setSpeaking(null);
   }
 
+  const trLoading = useRef(false); // one request at a time (React runs effects twice in development)
   async function loadTranslations() {
+    if (trLoading.current) return;
+    trLoading.current = true;
     setTrState("loading");
     const flat = sentences.flat();
     try {
@@ -176,6 +181,8 @@ export function Reader(props: {
       setTrState("idle");
     } catch {
       setTrState("error");
+    } finally {
+      trLoading.current = false;
     }
   }
 
@@ -309,12 +316,14 @@ export function Reader(props: {
             type="button"
             className="btn soft small"
             aria-pressed={hideTr}
+            title={hideTr ? "Показать все переводы" : "Скрыть переводы — сначала попробуйте перевести сами"}
             onClick={() => {
               track("read.split_hide", { on: !hideTr, textId: props.textId });
               setHideTr(!hideTr);
+              setRevealed(new Set());
             }}
           >
-            {hideTr ? "Показывать перевод" : "Прятать перевод"}
+            <EyeIcon off={!hideTr} /> {hideTr ? "Показать переводы" : "Скрыть переводы"}
           </button>
         )}
         <span className="small muted reader-tip">
@@ -371,17 +380,39 @@ export function Reader(props: {
                     {shown ? (
                       <span className={`bi-tr${t ? "" : " pending"}`} lang="ru">
                         {t ?? (trState === "loading" ? "…" : "")}
+                        {hideTr && t && (
+                          <button
+                            type="button"
+                            className="bi-eye"
+                            aria-label="Снова скрыть перевод"
+                            onClick={() =>
+                              setRevealed((r) => {
+                                const x = new Set(r);
+                                x.delete(rowKey);
+                                return x;
+                              })
+                            }
+                          >
+                            <EyeIcon off />
+                          </button>
+                        )}
                       </span>
                     ) : (
                       <button
                         type="button"
-                        className="bi-tr bi-reveal"
+                        className="bi-tr bi-hidden"
+                        aria-label="Перевод скрыт. Нажмите, чтобы показать"
                         onClick={() => {
                           track("read.translation_reveal", { textId: props.textId, paragraph: i, sentence: k });
                           setRevealed((r) => new Set(r).add(rowKey));
                         }}
                       >
-                        Показать перевод
+                        <span className="bi-blur" aria-hidden="true">
+                          {t ?? "Перевод появится здесь"}
+                        </span>
+                        <span className="bi-eye-badge" aria-hidden="true">
+                          <EyeIcon />
+                        </span>
                       </button>
                     )}
                   </div>
@@ -391,6 +422,21 @@ export function Reader(props: {
           );
         })}
       </div>
+
+      {speaking != null && (
+        <div className="now-reading" role="status">
+          <span className="now-reading-dot" aria-hidden="true" />
+          <span>
+            Читаю вслух · абзац {speaking + 1} из {texts.length}
+          </span>
+          <button type="button" className="btn soft small" onClick={() => readAloud(speaking + 1)} disabled={speaking >= texts.length - 1}>
+            Дальше
+          </button>
+          <button type="button" className="btn small" onClick={stopReading}>
+            ■ Стоп
+          </button>
+        </div>
+      )}
 
       {phrase && (
         <button
@@ -448,7 +494,38 @@ export function Reader(props: {
                     По-норвежски: <b lang="nb">{gloss.norwegian}</b>
                   </span>
                 )}
+                {!!gloss.parts?.length && (
+                  <div className="gloss-parts">
+                    <span className="eyebrow">Как образовано</span>
+                    <div className="row gap-6">
+                      {gloss.parts.map((x, k) => (
+                        <span key={k} className="part-chip">
+                          {k > 0 && <span className="muted">+</span>} <b lang={langAttr}>{x.part}</b> <span className="muted small">{x.meaning}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {gloss.note && <span className="small muted">{gloss.note}</span>}
+                {!!gloss.examples?.length && (
+                  <div className="gloss-examples">
+                    <span className="eyebrow">Примеры</span>
+                    {gloss.examples.map((x, k) => (
+                      <div key={k} className="example">
+                        <button type="button" className="bi-eye" aria-label="Слушать пример" onClick={() => (track("word.example_listen", { term: sel.term, k }), speak(x.text, props.lang, { rate: 0.85 }))}>
+                          ▶
+                        </button>
+                        <span>
+                          <span lang={langAttr} className="read">
+                            {x.text}
+                          </span>
+                          <br />
+                          <span className="small muted">{x.translation}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <span className="small muted gloss-sentence read-italic" lang={langAttr}>
                   «{sel.sentence}»
                 </span>
@@ -466,5 +543,15 @@ export function Reader(props: {
           </div>
         )}
     </div>
+  );
+}
+
+function EyeIcon({ off = false }: { off?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "-4px" }}>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
   );
 }

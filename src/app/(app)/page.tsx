@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { GRAMMAR } from "@/lib/learning/grammar";
 import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
-import { libraryFor } from "@/lib/library";
+import { loadPath } from "@/lib/path-data";
 import { logEvent, requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 import { htmlLang } from "@/lib/text-format";
@@ -21,16 +21,17 @@ export default async function DeskPage() {
   const nowIso = clock.iso;
   const since = clock.daysAgo(6).slice(0, 10);
 
-  const [quotes, due, library, scenarios, convs, fb, activity] = await Promise.all([
+  const [quotes, due, pathData, scenarios, convs, fb, activity] = await Promise.all([
     s.supabase.from("quotes").select("id,text,text_lang,translation_ru,translation_uk,author,author_note,origin,status,source").eq("active", true),
     s.supabase.from("words").select("term", { count: "exact" }).eq("user_id", s.user.id).eq("lang", lang).eq("status", "learning").lte("due", nowIso).limit(6),
-    libraryFor(s, lang),
+    loadPath(s, lang), // the path also loads the library
     s.supabase.from("scenarios").select("id,title_ru,level").eq("lang", lang).eq("active", true).order("sort"),
     s.supabase.from("conversations").select("scenario_id,started_at").eq("user_id", s.user.id).eq("lang", lang).order("started_at", { ascending: false }).limit(50),
     s.supabase.from("feedback_items").select("rule_key").eq("user_id", s.user.id).eq("lang", lang).gte("created_at", clock.daysAgo(14)),
     s.supabase.rpc("daily_activity", { p_user: s.user.id, p_since: since }),
   ]);
 
+  const { path, library } = pathData;
   const quote = quoteOfDay((quotes.data ?? []) as Quote[]);
   const dueCount = due.count ?? 0;
   const reading = library.find((b) => b.progress && !b.progress.finished) ?? library.find((b) => b.group === "fits" && !b.progress?.finished) ?? library[0];
@@ -86,6 +87,22 @@ export default async function DeskPage() {
           </figcaption>
         </figure>
       )}
+
+      <Link href="/path" className="card path-mini">
+        <div className="row">
+          <span className="eyebrow">Мой путь</span>
+          <span className="small muted num ml-auto">
+            {path.level}
+            {path.next ? ` → ${path.next}` : ""} · {Math.round(path.progress * 100)}%
+          </span>
+        </div>
+        <span className="progress">
+          <i style={{ width: `${Math.round(path.progress * 100)}%` }} />
+        </span>
+        <span className="small">
+          Следующий шаг: <b>{path.step.title}</b>
+        </span>
+      </Link>
 
       <div className="grid">
         <div className="card">

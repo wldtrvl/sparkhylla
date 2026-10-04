@@ -27,13 +27,17 @@ export const GlossSchema = z.object({
   note: z.string().nullable().optional().default(null),
   norwegian: z.string().nullable().optional().default(null),
   is_phrase: z.boolean().optional().default(false),
+  /** how the word is built: compound parts, prefixes, suffixes, endings ([] for simple words) */
+  parts: z.array(z.object({ part: z.string(), meaning: z.string() })).optional().default([]),
+  /** 2–3 short new sentences with the word at her level, one of them a question */
+  examples: z.array(z.object({ text: z.string(), translation: z.string() })).max(4).optional().default([]),
 });
 export type Gloss = z.infer<typeof GlossSchema>;
 
 export function glossPrompt(p: { lang: Lang; uiLang: UiLang; level: string; term: string; sentence: string }): PromptSpec {
   return {
     id: "gloss",
-    version: 2,
+    version: 3,
     system:
       `You are a precise bilingual dictionary for a language learner. ${LEARNER(p.lang, p.uiLang, p.level)}\n` +
       `Explain the meaning of the given ${langName(p.lang)} word or phrase AS USED IN THE SENTENCE. Be accurate; if a word is part of a fixed expression in the sentence, say so in the note.\n` +
@@ -47,7 +51,9 @@ export function glossPrompt(p: { lang: Lang; uiLang: UiLang; level: string; term
       `"forms": main inflected forms (e.g. "å hogge – hogger – hogde – har hogd") or "", ` +
       `"note": one short ${uiName(p.uiLang)} usage or grammar note (max 25 words) or null, ` +
       `"norwegian": ${p.lang === "en" ? "the Norwegian equivalent" : "null"}, ` +
-      `"is_phrase": true if a multi-word expression}`,
+      `"is_phrase": true if a multi-word expression, ` +
+      `"parts": how the word is built, as [{"part": "...", "meaning": "${uiName(p.uiLang)} meaning or role"}] — the words of a compound (e.g. "fuglefengerhytta" → fugl/fugle, fenger, hytte), prefixes and suffixes (u-, -het, -lig), and an inflection ending (e.g. "-a" definite form); [] for a simple word or a phrase, ` +
+      `"examples": 2 or 3 short, natural ${langName(p.lang)} sentences that use the word in the same meaning, at level ${p.level} or simpler — one of them a question — as [{"text": "...", "translation": "${uiName(p.uiLang)}"}]}`,
     messages: [{ role: "user", content: `Word or phrase: "${p.term}"\nSentence: "${p.sentence}"` }],
   };
 }

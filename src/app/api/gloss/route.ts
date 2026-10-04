@@ -21,7 +21,9 @@ export async function POST(req: Request) {
   const body = await parseBody(req, Body);
   if (isResponse(body)) return body;
   const term = body.term.trim();
-  const contextHash = createHash("sha1").update(body.sentence.trim()).digest("hex");
+  // the prompt version is part of the key: a cached v2 card has no word parts or examples
+  const version = glossPrompt({ lang: body.lang, uiLang: s.profile.ui_lang, level: "B1", term, sentence: "" }).version;
+  const contextHash = createHash("sha1").update(`v${version}|${body.sentence.trim()}`).digest("hex");
   const admin = adminClient();
   const cached = await admin
     .from("gloss_cache")
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
       task: "gloss",
       userId: s.user.id,
       schema: GlossSchema,
-      maxTokens: 400,
+      maxTokens: 800,
       temperature: 0.2,
       lowLatency: true,
       prompt: glossPrompt({ lang: body.lang, uiLang: s.profile.ui_lang, level: s.profile.levels[body.lang]?.reading ?? "B1", term, sentence: body.sentence }),
