@@ -9,14 +9,6 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { bandSize, buildVocab, coverage, coverageFromVocab, frequencyBand } from "@/lib/learning/coverage";
 
-const SUPABASE_STUBS = `
-  create schema auth;
-  create table auth.users (id uuid primary key, email text);
-  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.uid', true), '')::uuid $$;
-  create schema storage;
-  create table storage.buckets (id text primary key, name text, public boolean);
-`;
-
 const MIGRATIONS = join(__dirname, "../supabase/migrations");
 
 // Original sample text: sentence starts, names mid-sentence, a hyphenated compound, repeated words.
@@ -34,7 +26,7 @@ const USER = "11111111-1111-1111-1111-111111111111";
 
 beforeAll(async () => {
   db = await PGlite.create({ extensions: { pgcrypto } });
-  await db.exec(SUPABASE_STUBS);
+  await db.exec(readFileSync(join(__dirname, "../supabase/stubs.sql"), "utf8"));
   for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql")).sort()) {
     await db.exec(readFileSync(join(MIGRATIONS, f), "utf8"));
   }

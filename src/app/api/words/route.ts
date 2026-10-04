@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseBody } from "@/lib/api";
+import { toJson, type Tables } from "@/lib/db-json";
 import { newCard } from "@/lib/learning/srs";
 import { apiSession, isResponse, logEvent } from "@/lib/session";
 
@@ -62,14 +63,14 @@ export async function PATCH(req: Request) {
   const { data: w } = await s.supabase.from("words").select("id,status").eq("id", b.id).eq("user_id", s.user.id).maybeSingle();
   if (!w) return NextResponse.json({ error: "Слово не найдено." }, { status: 404 });
   const now = new Date();
-  const update: Record<string, unknown> = { updated_at: now.toISOString() };
+  const update: Tables["words"]["Update"] = { updated_at: now.toISOString() };
   if (b.translation !== undefined) update.translation = b.translation || null;
   if (b.note !== undefined) update.note = b.note || null;
   if (b.status && b.status !== w.status) {
     update.status = b.status;
     // back to learning: a fresh card due now; known: out of review
     const card = b.status === "learning" ? newCard(now) : null;
-    update.fsrs = card;
+    update.fsrs = toJson(card);
     update.due = card ? now.toISOString() : null;
   }
   const { error } = await s.supabase.from("words").update(update).eq("id", b.id).eq("user_id", s.user.id);

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { asLang, asLevels, asRecord, toJson, type Tables } from "@/lib/db-json";
+import type { Database } from "@/lib/supabase/database.types";
 import { insertLater } from "@/lib/log";
 import { getUser, type AuthUser } from "@/lib/supabase/server";
 import { frequencyBand, type KnownSets, type Lang } from "@/lib/learning/coverage";
@@ -18,17 +20,33 @@ export interface Profile {
 }
 
 export interface Session {
-  supabase: SupabaseClient;
+  supabase: SupabaseClient<Database>;
   user: AuthUser;
   profile: Profile;
 }
 
-async function loadProfile(supabase: SupabaseClient, user: AuthUser): Promise<Profile> {
+type ProfileRow = Tables["profiles"]["Row"];
+
+/** Narrow the stored row to the app's Profile (check-constrained text and jsonb columns). */
+function toProfile(r: ProfileRow): Profile {
+  return {
+    user_id: r.user_id,
+    display_name: r.display_name,
+    role: r.role === "coach" ? "coach" : "learner",
+    ui_lang: r.ui_lang === "uk" ? "uk" : "ru",
+    active_lang: asLang(r.active_lang),
+    levels: asLevels(r.levels),
+    settings: asRecord(r.settings),
+  };
+}
+
+async function loadProfile(supabase: SupabaseClient<Database>, user: AuthUser): Promise<Profile> {
   const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
-  if (data) return data as Profile;
+  if (data) return toProfile(data);
   // Trigger normally creates it; fall back for users created before the migration.
-  const { data: created } = await supabase.from("profiles").insert({ user_id: user.id }).select("*").single();
-  return created as Profile;
+  const { data: created, error } = await supabase.from("profiles").insert({ user_id: user.id }).select("*").single();
+  if (error || !created) throw new Error(`profile could not be created: ${error?.message ?? "no row"}`);
+  return toProfile(created);
 }
 
 /** For pages: redirects to /login when signed out. Cached per request (layout + page share it). */
@@ -58,7 +76,7 @@ export async function wordState(s: Session, lang: Lang): Promise<{ known: KnownS
 }
 
 /** A learner's own words as coverage counts them (forms, lemmas without article, parts of phrases). RLS applies. */
-export async function ownWordsFor(supabase: SupabaseClient, userId: string, lang: Lang): Promise<{ own: Set<string>; learning: string[] }> {
+export async function ownWordsFor(supabase: SupabaseClient<Database>, userId: string, lang: Lang): Promise<{ own: Set<string>; learning: string[] }> {
   const { data } = await supabase.from("words").select("term,lemma,status").eq("user_id", userId).eq("lang", lang).limit(20000);
   const own = new Set<string>();
   const learning: string[] = [];
@@ -84,5 +102,5 @@ export interface DailyActivity {
 
 /** Server-side event (decisions the app makes, results of AI calls tied to learning). Written after the response. */
 export function logEvent(s: Session, type: string, props: Record<string, unknown> = {}, path?: string) {
-  insertLater("events", { user_id: s.user.id, type, props, path: path ?? null, app_version: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0", created_at: new Date().toISOString() });
+  insertLater("events", { user_id: s.user.id, type, props: toJson(props), path: path ?? null, app_version: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0", created_at: new Date().toISOString() });
 }

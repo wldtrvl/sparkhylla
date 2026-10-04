@@ -44,7 +44,7 @@ export default async function TalkIndex() {
                 {convs.data.map((c) => (
                   <tr key={c.id}>
                     <td>{fmt.format(new Date(c.started_at))}</td>
-                    <td>{titles.get(c.scenario_id) ?? c.scenario_id}</td>
+                    <td>{(c.scenario_id && titles.get(c.scenario_id)) ?? c.scenario_id ?? "—"}</td>
                     <td className="small muted">целей: {c.goals_done.length}</td>
                     <td>{c.ended_at ? <Link href={`/talk/review/${c.id}`}>Разбор</Link> : <span className="small muted">не завершён</span>}</td>
                   </tr>

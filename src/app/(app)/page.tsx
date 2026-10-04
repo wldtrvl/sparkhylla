@@ -35,7 +35,7 @@ export default async function DeskPage() {
   const reading = library.find((b) => b.progress && !b.progress.finished) ?? library.find((b) => b.group === "fits" && !b.progress?.finished) ?? library[0];
   // conversation of the day: the scenario practised least recently (never first)
   const lastDone = new Map<string, string>();
-  for (const c of convs.data ?? []) if (!lastDone.has(c.scenario_id)) lastDone.set(c.scenario_id, c.started_at);
+  for (const c of convs.data ?? []) if (c.scenario_id && !lastDone.has(c.scenario_id)) lastDone.set(c.scenario_id, c.started_at);
   const scenario = [...(scenarios.data ?? [])].sort((a, b) => (lastDone.get(a.id) ?? "").localeCompare(lastDone.get(b.id) ?? ""))[0];
   // grammar of the week: her most frequent recent mistake, else the first topic for her level
   const counts: Record<string, number> = {};

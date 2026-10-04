@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseBody } from "@/lib/api";
+import { toJson } from "@/lib/db-json";
 import { apiSession, isResponse } from "@/lib/session";
 
 const Body = z.object({
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
     return {
       user_id: s.user.id,
       type: e.type,
-      props: e.props,
+      props: toJson(e.props),
       path: e.path ?? null,
       session_id: e.session_id ?? null,
       app_version: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0",

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSession, isResponse } from "@/lib/session";
 
@@ -24,7 +25,9 @@ export async function GET(req: NextRequest) {
   if (!cols) return NextResponse.json({ error: "Unknown table" }, { status: 400 });
   const rows: Record<string, unknown>[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await s.supabase.from(table).select(cols).eq("user_id", uid).order("created_at").range(from, from + 999);
+    // the table name comes from TABLES above; the typed client cannot express a table chosen at run time
+    const db = s.supabase as unknown as SupabaseClient;
+    const { data, error } = await db.from(table).select(cols).eq("user_id", uid).order("created_at").range(from, from + 999);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     rows.push(...((data ?? []) as unknown as Record<string, unknown>[]));
     if (!data || data.length < 1000) break;

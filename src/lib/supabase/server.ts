@@ -3,12 +3,13 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { publicEnv } from "@/lib/env";
+import type { Database } from "./database.types";
 import { fetchWithTimeout } from "./fetch";
 
 /** Supabase client acting as the signed-in user (RLS applies). One per request. */
 export async function createClient() {
   const cookieStore = await cookies();
-  return createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+  return createServerClient<Database>(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
     global: { fetch: fetchWithTimeout(15_000) },
     cookies: {
       getAll() {

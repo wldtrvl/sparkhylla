@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { aiFailure, parseBody } from "@/lib/api";
+import { asGoals, asLang } from "@/lib/db-json";
 import { talkOpenPrompt, TalkOpenSchema, type ScenarioCtx } from "@/lib/ai/prompts";
 import { runTask } from "@/lib/ai/run";
 import { apiSession, isResponse, logEvent } from "@/lib/session";
@@ -14,8 +15,9 @@ export async function POST(req: Request) {
   if (isResponse(b)) return b;
   const { data: sc } = await s.supabase.from("scenarios").select("id,lang,level,persona,setting,goals").eq("id", b.scenarioId).eq("active", true).maybeSingle();
   if (!sc) return NextResponse.json({ error: "Сценарий не найден." }, { status: 404 });
-  const level = s.profile.levels[sc.lang as "no" | "en"]?.speaking ?? sc.level;
-  const ctx: ScenarioCtx = { persona: sc.persona, setting: sc.setting, goals: sc.goals, lang: sc.lang, level, uiLang: s.profile.ui_lang };
+  const lang = asLang(sc.lang);
+  const level = s.profile.levels[lang]?.speaking ?? sc.level;
+  const ctx: ScenarioCtx = { persona: sc.persona, setting: sc.setting, goals: asGoals(sc.goals), lang, level, uiLang: s.profile.ui_lang };
   try {
     const res = await runTask({ task: "talk_open", userId: s.user.id, schema: TalkOpenSchema, maxTokens: 300, temperature: 0.7, lowLatency: true, prompt: talkOpenPrompt(ctx) });
     const { data: conv, error } = await s.supabase.from("conversations").insert({ user_id: s.user.id, scenario_id: sc.id, lang: sc.lang, level }).select("id").single();

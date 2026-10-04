@@ -1,6 +1,7 @@
 import "server-only";
 import type { ZodType } from "zod";
 import { serverEnv } from "@/lib/env";
+import { toJson } from "@/lib/db-json";
 import { insertLater } from "@/lib/log";
 import { adminClient } from "@/lib/supabase/admin";
 import { execute, type AttemptLog, type ExecuteResult } from "./execute";
@@ -37,7 +38,7 @@ function logAttempt(userId: string | null, a: AttemptLog) {
       ok: a.ok,
       error: a.error ?? null,
       attempt: a.attempt,
-      request: payloads ? a.request : null,
+      request: payloads ? toJson(a.request) : null,
       response: payloads ? (a.response ?? null) : null,
       created_at: new Date().toISOString(),
     });

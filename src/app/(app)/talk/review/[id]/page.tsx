@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FixCard } from "@/components/FixCard";
+import { FixCard, type FixItem } from "@/components/FixCard";
+import { asLang } from "@/lib/db-json";
 import type { Feedback } from "@/lib/ai/prompts";
 import { requireSession } from "@/lib/session";
 
@@ -10,7 +11,7 @@ export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id
   const { data: conv } = await s.supabase.from("conversations").select("id,scenario_id,lang,goals_done,started_at,ended_at,summary").eq("id", id).eq("user_id", s.user.id).maybeSingle();
   if (!conv) notFound();
   const [{ data: sc }, { data: fixes }, { data: turns }] = await Promise.all([
-    s.supabase.from("scenarios").select("title_ru,goals").eq("id", conv.scenario_id).single(),
+    s.supabase.from("scenarios").select("title_ru,goals").eq("id", conv.scenario_id ?? "").maybeSingle(),
     s.supabase.from("feedback_items").select("id,said,hint,correction,rule_label,status").eq("conversation_id", id).order("id"),
     s.supabase.from("conversation_turns").select("role,text").eq("conversation_id", id).order("id"),
   ]);
@@ -43,7 +44,7 @@ export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id
           )}
           {!!fixes?.length && <h2 className="h2">Что стоит поправить</h2>}
           {(fixes ?? []).map((f) => (
-            <FixCard key={f.id} item={f} lang={conv.lang} />
+            <FixCard key={f.id} item={{ ...f, status: f.status as FixItem["status"] }} lang={asLang(conv.lang)} />
           ))}
           {!!fb?.new_phrases?.length && (
             <div className="card">

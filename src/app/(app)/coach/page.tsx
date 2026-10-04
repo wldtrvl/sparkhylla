@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ruleLabel } from "@/lib/learning/grammar";
+import { asRecord } from "@/lib/db-json";
 import { requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 
@@ -155,7 +156,7 @@ export default async function CoachPage({ searchParams }: PageProps<"/coach">) {
               <div key={i} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 8 }}>
                 <span className="muted num">{fmtTime.format(new Date(e.created_at))}</span>
                 <span>
-                  <b>{e.type}</b> <span className="muted">{summarizeProps(e.props)}</span>
+                  <b>{e.type}</b> <span className="muted">{summarizeProps(asRecord(e.props))}</span>
                 </span>
               </div>
             ))}

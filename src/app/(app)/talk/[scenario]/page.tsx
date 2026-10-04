@@ -1,3 +1,4 @@
+import { asGoals, asLang } from "@/lib/db-json";
 import { notFound } from "next/navigation";
 import { Conversation } from "@/components/Conversation";
 import { requireSession } from "@/lib/session";
@@ -10,7 +11,7 @@ export default async function TalkPage({ params }: PageProps<"/talk/[scenario]">
   if (!sc) notFound();
   return (
     <Conversation
-      scenario={{ id: sc.id, title: sc.title_ru, lang: sc.lang, level: s.profile.levels[sc.lang as "no" | "en"]?.speaking ?? sc.level, persona: sc.persona, goals: sc.goals }}
+      scenario={{ id: sc.id, title: sc.title_ru, lang: asLang(sc.lang), level: s.profile.levels[asLang(sc.lang)]?.speaking ?? sc.level, persona: sc.persona, goals: asGoals(sc.goals) }}
       serverStt={sttAvailable()}
     />
   );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseBody } from "@/lib/api";
+import { toJson, type Tables } from "@/lib/db-json";
 import { apiSession, isResponse, logEvent } from "@/lib/session";
 
 const Level = z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]);
@@ -19,8 +20,7 @@ export async function PATCH(req: Request) {
   if (isResponse(s)) return s;
   const body = await parseBody(req, Body);
   if (isResponse(body)) return body;
-  const patch: Record<string, unknown> = { ...body };
-  if (body.settings) patch.settings = { ...s.profile.settings, ...body.settings };
+  const patch: Tables["profiles"]["Update"] = { ...body, levels: body.levels ? toJson(body.levels) : undefined, settings: body.settings ? toJson({ ...s.profile.settings, ...body.settings }) : undefined };
   const { error } = await s.supabase.from("profiles").update(patch).eq("user_id", s.user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (body.levels) logEvent(s, "decision.level_set", { from: s.profile.levels, to: body.levels, by: "manual" });

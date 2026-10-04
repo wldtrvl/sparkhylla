@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { asLevels } from "@/lib/db-json";
 import { analyzeBody } from "@/lib/import/analyze";
 import { draftFromFile } from "@/lib/import/file";
 import { draftFromUrl } from "@/lib/import/sources";
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
   const { data: people } = await s.supabase.from("profiles").select("user_id,display_name,levels").in("user_id", ids.length ? ids : [s.user.id]);
   const fits = await Promise.all(
     (people ?? []).map(async (p) => {
-      const level: string = p.levels?.[draft.lang]?.reading ?? "B1";
+      const level: string = asLevels(p.levels)[draft.lang]?.reading ?? "B1";
       const { own } = await ownWordsFor(s.supabase, p.user_id, draft.lang);
       const cov = coverage(draft.body, { band: frequencyBand(draft.lang, level), own }, draft.lang).coverage;
       return { name: p.display_name || (p.user_id === s.user.id ? "Вы" : "Ученица"), level, coverage: cov, group: fitGroup(cov) };

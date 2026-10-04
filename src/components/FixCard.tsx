@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { speak } from "./audio";
 
-interface Item {
+export interface FixItem {
   id: number;
   said: string;
   hint: string;
@@ -12,7 +12,7 @@ interface Item {
 }
 
 /** Hint first, answer on request — she gets the chance to find the fix herself. */
-export function FixCard({ item, lang }: { item: Item; lang: "no" | "en" }) {
+export function FixCard({ item, lang }: { item: FixItem; lang: "no" | "en" }) {
   const [status, setStatus] = useState(item.status);
   const [failed, setFailed] = useState(false);
   const langAttr = lang === "no" ? "nb" : "en";
