@@ -14,7 +14,7 @@ async function googleTts(text: string, lang: Lang, rate: number): Promise<Buffer
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       input: { text },
-      voice: { languageCode: lang === "no" ? "nb-NO" : "en-GB", ...(name ? { name } : { ssmlGender: "FEMALE" }) },
+      voice: { languageCode: lang === "no" ? "nb-NO" : "en-US", ...(name ? { name } : { ssmlGender: "FEMALE" }) },
       audioConfig: { audioEncoding: "MP3", speakingRate: rate },
     }),
   });
@@ -32,7 +32,7 @@ async function openaiTts(text: string, lang: Lang, rate: number): Promise<Buffer
       voice: "alloy",
       input: text,
       speed: rate,
-      instructions: lang === "no" ? "Speak natural Norwegian Bokmål (Eastern Norwegian), clearly and calmly." : "Speak clear British English, calmly.",
+      instructions: lang === "no" ? "Speak natural Norwegian Bokmål (Eastern Norwegian), clearly and calmly." : "Speak clear American English, calmly.",
       response_format: "mp3",
     }),
   });
@@ -54,7 +54,9 @@ export async function synthesize(text: string, lang: Lang, rate: number, userId:
     const p = TTS[name];
     if (!p?.available()) continue;
     const voice = lang === "no" ? serverEnv.ttsVoiceNo() : serverEnv.ttsVoiceEn();
-    const key = createHash("sha256").update([name, voice, lang, rate.toFixed(2), clean].join("|")).digest("hex");
+    // accent is part of the key: English switched from British to American (easier to follow), old audio is not reused
+    const accent = lang === "no" ? "nb-NO" : "en-US";
+    const key = createHash("sha256").update([name, voice, accent, rate.toFixed(2), clean].join("|")).digest("hex");
     const path = `${lang}/${key}.mp3`;
     const publicUrl = admin.storage.from("tts").getPublicUrl(path).data.publicUrl;
     const head = await fetch(publicUrl, { method: "HEAD" }).catch(() => null);

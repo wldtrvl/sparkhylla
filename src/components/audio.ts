@@ -10,10 +10,10 @@ function browserSpeak(text: string, lang: "no" | "en", rate: number, onEnd?: () 
   if (!("speechSynthesis" in window)) return onEnd?.();
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang === "no" ? "nb-NO" : "en-GB";
+  u.lang = lang === "no" ? "nb-NO" : "en-US"; // American English: clearer for her than British
   u.rate = rate;
   const voices = speechSynthesis.getVoices();
-  const v = lang === "no" ? voices.find((x) => /^(nb|no|nn)/i.test(x.lang)) : voices.find((x) => /^en-GB/i.test(x.lang)) ?? voices.find((x) => /^en/i.test(x.lang));
+  const v = lang === "no" ? voices.find((x) => /^(nb|no|nn)/i.test(x.lang)) : voices.find((x) => /^en-US/i.test(x.lang)) ?? voices.find((x) => /^en/i.test(x.lang));
   if (v) u.voice = v;
   u.onend = () => onEnd?.();
   u.onerror = () => onEnd?.();

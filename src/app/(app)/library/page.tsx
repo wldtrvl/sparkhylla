@@ -3,7 +3,7 @@ import { coverColor, libraryFor, type LibraryItem } from "@/lib/library";
 import { logEvent, requireSession } from "@/lib/session";
 import { htmlLang } from "@/lib/text-format";
 
-const KINDS: Record<string, string> = { novel: "Романы", story: "Рассказы", tale: "Сказки", fable: "Басни", article: "Статьи", other: "Другое" };
+const KINDS: Record<string, string> = { novel: "Романы", story: "Рассказы", tale: "Сказки", fable: "Басни", article: "Статьи", news: "Новости", other: "Другое" };
 const GROUPS = [
   { key: "fits", title: "Подходит сейчас" },
   { key: "stretch", title: "Чуть сложнее — на следующий месяц" },
@@ -35,6 +35,7 @@ function Book({ b }: { b: LibraryItem }) {
       )}
       <div className="row gap-6">
         <span className="chip">{b.availability === "in_app" ? "Читать здесь" : "Библиотека / Bokhylla"}</span>
+        {b.audio_url && <span className="chip">запись</span>}
         {b.orthography === "old" && (
           <span className="chip" title="Написание до реформы 1938 года: sig, kunde, efter. Такие слова засчитываются по современному написанию.">
             старая орфография
@@ -68,8 +69,8 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
       <div className="stack gap-8">
         <h1 className="display">Библиотека</h1>
         <p className="lead">
-          Только настоящие тексты, без упрощений. Сначала — книги, в которых вы уже знаете 95–98% слов: так читать интересно, а не тяжело. Процент растёт вместе
-          с вашим словарём.
+          Только настоящие тексты, без упрощений. Сначала — книги, в которых вы уже знаете 90% слов и больше: остальное поможет перевод слова или «Перевод рядом».
+          Процент растёт вместе с вашим словарём.
         </p>
       </div>
       <form className="row gap-8" role="search" action="/library">

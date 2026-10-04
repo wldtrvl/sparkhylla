@@ -6,7 +6,7 @@ import { TEXT_KINDS, type ImportDraft, type TextKind } from "@/lib/import/types"
 import { isHeading, paginate, paragraphText, WORD_PATTERN } from "@/lib/text-format";
 import { track } from "./tracker";
 
-const KIND_RU: Record<TextKind, string> = { novel: "Роман", story: "Рассказ", tale: "Сказки", fable: "Басни", article: "Статья", other: "Другое" };
+const KIND_RU: Record<TextKind, string> = { novel: "Роман", story: "Рассказ", tale: "Сказки", fable: "Басни", article: "Статья", news: "Новости", other: "Другое" };
 const GROUP_RU = { fits: "подходит сейчас", stretch: "чуть сложнее", later: "на потом" } as const;
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 

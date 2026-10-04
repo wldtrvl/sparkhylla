@@ -18,10 +18,11 @@ export interface TextRow {
   word_count: number | null;
   tags: string[];
   orthography: "modern" | "old";
+  audio_url: string | null;
 }
 
 /** Everything the library and desk show about a book; never the body. */
-export const LIBRARY_COLUMNS = "id,lang,title,author,author_note,year,kind,availability,source_url,license,est_level,word_count,tags,orthography";
+export const LIBRARY_COLUMNS = "id,lang,title,author,author_note,year,kind,availability,source_url,license,est_level,word_count,tags,orthography,audio_url";
 export const TEXT_COLUMNS = `${LIBRARY_COLUMNS},body`;
 
 export interface LibraryItem extends Omit<TextRow, "body"> {

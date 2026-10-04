@@ -635,6 +635,7 @@ export type Database = {
       texts: {
         Row: {
           active: boolean;
+          audio_url: string | null;
           author: string;
           author_note: string | null;
           availability: string;
@@ -658,6 +659,7 @@ export type Database = {
         };
         Insert: {
           active?: boolean;
+          audio_url?: string | null;
           author: string;
           author_note?: string | null;
           availability?: string;
@@ -681,6 +683,7 @@ export type Database = {
         };
         Update: {
           active?: boolean;
+          audio_url?: string | null;
           author?: string;
           author_note?: string | null;
           availability?: string;

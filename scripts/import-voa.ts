@@ -25,6 +25,8 @@ const SECTIONS = [
   { id: 955, name: "Health & Lifestyle", level: "B1" },
 ];
 const WIRE = /\b(Associated Press|Reuters|AFP|Agence France-Presse|the AP\b|AP reported)/i;
+/** Current US and world politics, elections and wars are skipped (only Norwegian politics belongs in the app). History stays. */
+const POLITICS = /\b(Trump|Biden|Harris|Obama|Putin|Netanyahu|Zelensky|election|elections|electoral|Congress|Senate|senator|Democrats?|Republicans?|White House|campaign|felony|impeach\w*|Israel\w*|Gaza|Hamas|Rafah|Hezbollah|Ukrain\w*|Russia\w*|missile|weapons?|troops|military|sanctions?|tariffs?|border|migrants?)\b/i;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function get(url: string) {
@@ -58,6 +60,8 @@ async function article(url: string): Promise<Article | { skip: string }> {
   }
   const body = paras.join("\n\n");
   if (WIRE.test(body) || WIRE.test(doc.querySelector(".c-author, .author")?.text ?? "")) return { skip: "wire-service content" };
+  const political = (title.match(POLITICS) ?? body.slice(0, 1500).match(POLITICS))?.[0];
+  if (political) return { skip: `politics («${political}»)` };
   const words = (body.match(/\p{L}+/gu) ?? []).length;
   if (words < 150) return { skip: `too short (${words} words)` };
   return { url, title, date, body, mp3, words };

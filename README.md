@@ -2,7 +2,7 @@
 
 A home language library for one learner (Norwegian B1→B2, English A1–A2), built desktop-first and usable on a phone.
 
-- **Library of originals**: real texts, never simplified. Books are ordered by how many of their words she already knows (target 95–98%).
+- **Library of originals**: real texts, never simplified. Books are ordered by how many of their words she already knows: 90%+ fits, since she reads with word lookup and side-by-side translation (95–98% is the target for reading without help). Norwegian compounds count as known when their parts are.
 - **Reader**: unknown words highlighted; tap for a gloss in context; save to review or mark as known; listen to any paragraph.
 - **Companion mode** for copyrighted books read in the library or Bokhylla: paste a page, get the same help. The page itself is not stored.
 - **Words**: FSRS spaced repetition, answered by voice or typing, with each word shown in its original sentence.

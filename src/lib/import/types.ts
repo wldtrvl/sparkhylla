@@ -1,7 +1,7 @@
 import type { Lang } from "@/lib/learning/coverage";
 
-export type TextKind = "novel" | "story" | "tale" | "fable" | "article" | "other";
-export const TEXT_KINDS: TextKind[] = ["novel", "story", "tale", "fable", "article", "other"];
+export type TextKind = "novel" | "story" | "tale" | "fable" | "article" | "news" | "other";
+export const TEXT_KINDS: TextKind[] = ["novel", "story", "tale", "fable", "article", "news", "other"];
 
 /**
  * Whether the text may be stored in full (rule: originals that are public domain or openly licensed only).

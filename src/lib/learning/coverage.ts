@@ -106,13 +106,16 @@ export function nameForms(toks: Token[]): Set<string> {
   return capitalised;
 }
 
-/** A word form is known if it (or its modern spelling) is hers or in her band; compounds if every part is. */
+/**
+ * A word form is known if it (or its modern spelling) is hers or in her band; a hyphenated or (Norwegian)
+ * closed compound if every part is: "naturopplevelse" = natur + opplevelse.
+ */
 export function isKnownForm(norm: string, known: KnownSets, lang?: Lang): boolean {
   if (known.own.has(norm) || known.band.has(norm)) return true;
   const modern = lang ? modernForm(norm, lang) : null;
   if (modern && (known.own.has(modern) || known.band.has(modern))) return true;
-  if (norm.includes("-")) return norm.split("-").every((p) => known.own.has(p) || known.band.has(p));
-  return false;
+  const parts = wordParts(norm, lang);
+  return !!parts && parts.every((p) => known.own.has(p) || known.band.has(p));
 }
 
 export function isKnown(tok: Token, known: KnownSets, names: Set<string> = new Set(), lang?: Lang): boolean {
@@ -144,10 +147,13 @@ export function coverage(text: string, known: KnownSets, lang?: Lang, names?: Se
 }
 
 export type FitGroup = "fits" | "stretch" | "later";
-/** fits: ≥95% known; stretch: 90–95%; later: below 90%. */
+/**
+ * fits: ≥90% known; stretch: 85–90%; later: below 85%. She reads with word lookup and «Перевод рядом»,
+ * so assisted reading starts lower than the 95–98% research target for reading without help.
+ */
 export function fitGroup(cov: number): FitGroup {
-  if (cov >= 0.95) return "fits";
-  if (cov >= 0.9) return "stretch";
+  if (cov >= 0.9) return "fits";
+  if (cov >= 0.85) return "stretch";
   return "later";
 }
 
@@ -194,6 +200,42 @@ function rankOf(lang: Lang): Map<string, number> {
 
 const minRank = (a?: number, b?: number) => (a == null ? (b ?? null) : b == null ? a : Math.min(a, b));
 
+/**
+ * Parts of a compound: hyphenated words split at "-"; a Norwegian word that is not in the frequency list is
+ * split into 2–3 listed words (each at least 3 letters, optionally joined by a linking -s- or -e-), choosing
+ * the split whose rarest part is most common. null when the word is listed or cannot be split.
+ * Depends only on the frequency list, so the stored vocabulary and the live check always agree.
+ */
+const partsCache = new Map<string, string[] | null>();
+export function wordParts(norm: string, lang?: Lang): string[] | null {
+  if (norm.includes("-")) return norm.split("-");
+  if (lang !== "no" || norm.length < 7) return null;
+  const ranks = rankOf("no");
+  if (ranks.has(norm)) return null;
+  const hit = partsCache.get(norm);
+  if (hit !== undefined) return hit;
+  const split = (w: string, depth: number): { parts: string[]; max: number } | null => {
+    let best: { parts: string[]; max: number } | null = null;
+    for (let i = 3; i <= w.length - 3; i++) {
+      for (const link of ["", "s", "e"]) {
+        const head = w.slice(0, i);
+        if (link && !head.endsWith(link)) continue;
+        const stem = link ? head.slice(0, -1) : head;
+        const r = ranks.get(stem);
+        if (stem.length < 3 || !r) continue;
+        const tail = w.slice(i);
+        const tr = ranks.get(tail);
+        const cand = tr ? { parts: [stem, tail], max: Math.max(r, tr) } : depth < 2 ? ((x) => (x ? { parts: [stem, ...x.parts], max: Math.max(r, x.max) } : null))(split(tail, depth + 1)) : null;
+        if (cand && (!best || cand.max < best.max)) best = cand;
+      }
+    }
+    return best;
+  };
+  const parts = split(norm, 1)?.parts ?? null;
+  partsCache.set(norm, parts);
+  return parts;
+}
+
 /** Distinct word forms of a text with counts and frequency ranks: everything coverage needs, without the text. */
 export function buildVocab(text: string, lang: Lang): TextVocab {
   const ranks = rankOf(lang);
@@ -207,8 +249,8 @@ export function buildVocab(text: string, lang: Lang): TextVocab {
   }
   const entries: VocabEntry[] = [];
   for (const [form, n] of counts) {
-    const parts = form.includes("-") ? form.split("-") : null;
     const alt = modernForm(form, lang);
+    const parts = alt ? null : wordParts(form, lang);
     entries.push({
       form,
       n,

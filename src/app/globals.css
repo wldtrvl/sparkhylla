@@ -340,3 +340,5 @@ table.data td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical
 .path-mini { text-decoration: none; color: var(--ink); gap: 8px; }
 .path-mini:hover { border-color: var(--cloth); color: var(--ink); }
 .path-mini .progress { height: 8px; }
+.audio-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border-radius: 14px; background: var(--cloth-soft); }
+.audio-bar audio { flex: 1; min-width: 240px; height: 40px; }

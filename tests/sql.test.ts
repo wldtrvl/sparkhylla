@@ -19,7 +19,7 @@ const SAMPLE = `Kari bor i en liten by ved fjorden. Hver morgen går hun til bak
 Etterpå sykler hun langs vannet til jobben i Bergen-avdelingen. Det regner, men hun synes det er fint likevel. Kollegaene hennes sier at Kari alltid kommer blid på jobb.`;
 
 // Older spelling (1917 riksmål) and a name that also opens sentences.
-const OLD = `Halvor gikk ut i skogen. Der satte han sig ned, for han vilde hvile. Efter en stund kom trollet, og Halvor skulde nu vise hvad han kunde. «Hvad gjør du her?» sa trollet til Halvor. Efterpå gikk de hjem sammen.`;
+const OLD = `Halvor fikk en naturopplevelse på skoleturen. Halvor gikk ut i skogen. Der satte han sig ned, for han vilde hvile. Efter en stund kom trollet, og Halvor skulde nu vise hvad han kunde. «Hvad gjør du her?» sa trollet til Halvor. Efterpå gikk de hjem sammen.`;
 
 let db: PGlite;
 const USER = "11111111-1111-1111-1111-111111111111";

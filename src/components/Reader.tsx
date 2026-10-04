@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { htmlLang, isHeading, paragraphText, splitSentences, WORD_PATTERN } from "@/lib/text-format";
 import { speak, speakToEnd, stopAudio, ttsUrl } from "./audio";
+import { AudioBar } from "./AudioBar";
 import { track } from "./tracker";
 
 type Lang = "no" | "en";
@@ -80,6 +81,7 @@ export function Reader(props: {
   paragraphs: string[];
   unknown: string[];
   learning: string[];
+  audioUrl?: string | null; // a real recording of the text: shown instead of the synthetic «Слушать страницу»
 }) {
   const [unknown, setUnknown] = useState(() => new Set(props.unknown));
   const [learning, setLearning] = useState(() => new Set(props.learning));
@@ -290,8 +292,9 @@ export function Reader(props: {
 
   return (
     <div className="reader" ref={rootRef}>
+      {props.audioUrl && <AudioBar src={props.audioUrl} textId={props.textId} />}
       <div className="row listen-bar">
-        {speaking == null ? (
+        {props.audioUrl ? null : speaking == null ? (
           <button type="button" className="btn soft small" onClick={() => readAloud(0)}>
             ▶ Слушать страницу
           </button>

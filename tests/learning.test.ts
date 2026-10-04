@@ -26,8 +26,10 @@ describe("coverage", () => {
     expect(c2.unknown).not.toContain("hogge");
   });
   it("groups by fit thresholds", () => {
+    // assisted reading (lookup + translation): ≥90% fits, 85–90% stretch
     expect(fitGroup(0.97)).toBe("fits");
-    expect(fitGroup(0.92)).toBe("stretch");
+    expect(fitGroup(0.9)).toBe("fits");
+    expect(fitGroup(0.87)).toBe("stretch");
     expect(fitGroup(0.8)).toBe("later");
     expect(fitFromLevel("B2", "B1")).toBe("stretch");
     expect(fitFromLevel("A2", "B1")).toBe("fits");
@@ -86,6 +88,21 @@ describe("book pages", () => {
     // a short section does not get a page of its own
     expect(pages.flat().map(paragraphText)).toContain("Siste avsnitt.");
     expect(pages.find((pg) => pg.includes("## Kort del"))).toContain("## Neste del");
+  });
+});
+
+describe("compounds", () => {
+  it("splits Norwegian compounds into listed words, with a linking -s- or -e-", async () => {
+    const { wordParts } = await import("@/lib/learning/coverage");
+    expect(wordParts("naturopplevelse", "no")).toEqual(["natur", "opplevelse"]);
+    expect(wordParts("skoleungdom", "no")).toEqual(["skole", "ungdom"]);
+    expect(wordParts("sjokolade-kake", "no")).toEqual(["sjokolade", "kake"]);
+    expect(wordParts("hus", "no")).toBeNull(); // listed word
+    expect(wordParts("naturopplevelse", "en")).toBeNull(); // English compounds are written apart
+  });
+  it("counts a compound as known when all its parts are", () => {
+    const known = { band: new Set(["natur", "opplevelse", "er", "en"]), own: new Set<string>() };
+    expect(coverage("En naturopplevelse er en opplevelse.", known, "no").coverage).toBe(1);
   });
 });
 

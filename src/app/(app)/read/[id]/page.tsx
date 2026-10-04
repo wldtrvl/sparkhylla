@@ -85,6 +85,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
           paragraphs={pages[pageIdx]}
           unknown={cov.unknown}
           learning={learning}
+          audioUrl={t.audio_url}
         />
         <PageNav textId={t.id} page={pageIdx} total={pages.length} coverage={whole.coverage} />
       </div>
