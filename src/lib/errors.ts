@@ -14,6 +14,8 @@ export async function recordServerError(
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return;
   const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  // the browser left before the page finished streaming: not an app error
+  if (/destination stream closed early|aborted|ECONNRESET/i.test(message)) return;
   const digest = typeof err === "object" && err && "digest" in err ? String((err as { digest: unknown }).digest) : null;
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const { error } = await db.from("app_errors").insert({

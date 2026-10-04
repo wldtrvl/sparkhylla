@@ -45,3 +45,8 @@ next-env.d.ts
 
 # model evaluation output
 /eval-results/
+
+# Playwright
+/e2e/.auth/
+/test-results/
+/playwright-report/

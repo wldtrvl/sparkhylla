@@ -76,7 +76,9 @@ Tasks are `gloss`, `talk_open`, `tutor_turn`, `talk_help`, `talk_feedback` and `
 
 ```bash
 npm run typecheck   # TypeScript
-npm test            # unit tests: coverage, FSRS, answers, quotes, routing, JSON repair, fallbacks
+npm test            # unit, route and SQL tests (migrations run in PGlite)
+npm run e2e         # Playwright smoke at desktop and phone size (local; needs DEV_LOGIN_EMAIL)
+npm run db:types    # regenerate database types from the migrations (needs Docker)
 npm run lint
 npm run eval        # compare models on fixed test cases (needs API keys) → eval-results/*.md
 ```

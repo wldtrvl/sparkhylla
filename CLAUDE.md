@@ -9,7 +9,9 @@ A home language library for one learner: a 51-year-old Ukrainian/Russian speaker
 ```bash
 npm run dev         # http://localhost:3000 (needs .env.local, copy from .env.example)
 npm run typecheck   # next typegen && tsc --noEmit; run after deleting .next too
-npm test            # vitest: learning, ai, and sql.test.ts (all migrations run in PGlite)
+npm test            # vitest: learning, ai, import, routes, sql (all migrations run in PGlite)
+npm run e2e         # Playwright smoke at 1280 px and phone size; local only (dev sign-in, real Supabase from .env.local)
+npm run db:types    # regenerate src/lib/supabase/database.types.ts from the migrations (Docker); CI fails if it is stale
 npm run lint
 npm run eval        # offline model comparison → eval-results/*.md (needs AI keys)
 npm run import:gutenberg -- <id> <lang> "<title>" "<author>" <year> <kind> "<note in Russian>"
@@ -17,7 +19,7 @@ npm run import:text -- <file.txt> <lang> "<title>" "<author>" "<year>" "<source 
 npm run vocab:build # (re)build text_vocab for in-app books; needed after editing a body by hand
 ```
 
-Before every commit: `npm run typecheck && npm test && npm run lint`.
+Before every commit: `npm run typecheck && npm test && npm run lint`. After a migration also `npm run db:types`. CI (.github/workflows/ci.yml) runs the same on every push.
 
 ## Where things live
 
@@ -44,7 +46,7 @@ Before every commit: `npm run typecheck && npm test && npm run lint`.
 1. **Log everything.** Each new user action calls `track("area.action", {...})` on the client. Each choice the app makes for her (what to show, what to correct, level changes) calls `logEvent(..., "decision.*", {reason, ...})` on the server. The data is the point of the project.
 2. **AI calls go through `runTask(task, prompt, Schema)`**, never through a provider directly. Each new task needs an entry in `types.ts`, a default route in `routing.ts`, and a zod schema in `prompts.ts`.
 3. **Prompts are versioned.** Changing wording means bumping `version` in `prompts.ts`. Outcomes are compared by `prompt_id`/`prompt_version` in `llm_calls`.
-4. **Schema changes** go in a new numbered migration (`0003_...sql`), never in an edit to an old one. Each new table gets RLS: learners see their own rows, and coaches see linked learners via `can_read_user()`. After writing a migration, tell the user to run it in the Supabase SQL Editor.
+4. **Schema changes** go in a new numbered migration. Then run `npm run db:types` and use the typed client; jsonb and check-constrained columns are narrowed in `src/lib/db-json.ts`. Use a new file (`0009_...sql`), never in an edit to an old one. Each new table gets RLS: learners see their own rows, and coaches see linked learners via `can_read_user()`. After writing a migration, tell the user to run it in the Supabase SQL Editor.
 5. **Secrets stay server-side.** Only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` may reach the browser. `adminClient()` (service role) is used only in server code that already checked the session.
 6. **Original texts only.** Never simplify or generate stories. Copyrighted books are `availability = 'external'` with a link, and companion mode does not store pasted pages.
 7. **Pedagogy.** No corrections during a conversation. Afterwards give at most 2 fixes, with a hint (where to look) before the answer. Praise specifically. New phrases go to FSRS review. Target 95–98% known words for reading.
