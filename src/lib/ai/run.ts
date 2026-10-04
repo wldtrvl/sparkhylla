@@ -1,6 +1,7 @@
 import "server-only";
 import type { ZodType } from "zod";
 import { serverEnv } from "@/lib/env";
+import { insertLater } from "@/lib/log";
 import { adminClient } from "@/lib/supabase/admin";
 import { execute, type AttemptLog, type ExecuteResult } from "./execute";
 import { configuredRoutes, planAttempts, type DbRoute } from "./routing";
@@ -19,11 +20,9 @@ async function dbRoutes(): Promise<DbRoute[]> {
   return routeCache.rows;
 }
 
-async function logAttempt(userId: string | null, a: AttemptLog) {
+function logAttempt(userId: string | null, a: AttemptLog) {
   const payloads = serverEnv.logAiPayloads();
-  const { error } = await adminClient()
-    .from("llm_calls")
-    .insert({
+  insertLater("llm_calls", {
       user_id: userId,
       task: a.task,
       prompt_id: a.promptId,
@@ -40,8 +39,8 @@ async function logAttempt(userId: string | null, a: AttemptLog) {
       attempt: a.attempt,
       request: payloads ? a.request : null,
       response: payloads ? (a.response ?? null) : null,
+      created_at: new Date().toISOString(),
     });
-  if (error) console.error("llm_calls insert failed:", error.message);
 }
 
 export interface RunOptions<T> {

@@ -4,7 +4,6 @@ import { aiFailure, parseBody } from "@/lib/api";
 import { talkOpenPrompt, TalkOpenSchema, type ScenarioCtx } from "@/lib/ai/prompts";
 import { runTask } from "@/lib/ai/run";
 import { apiSession, isResponse, logEvent } from "@/lib/session";
-import { synthesize } from "@/lib/speech/tts";
 
 const Body = z.object({ scenarioId: z.string().max(60) });
 
@@ -22,9 +21,9 @@ export async function POST(req: Request) {
     const { data: conv, error } = await s.supabase.from("conversations").insert({ user_id: s.user.id, scenario_id: sc.id, lang: sc.lang, level }).select("id").single();
     if (error) throw error;
     await s.supabase.from("conversation_turns").insert({ conversation_id: conv.id, user_id: s.user.id, role: "tutor", text: res.data.reply });
-    const audioUrl = await synthesize(res.data.reply, sc.lang, Number(s.profile.settings?.tts_rate ?? 0.9), s.user.id).catch(() => null);
-    await logEvent(s, "talk.start", { conversationId: conv.id, scenario: sc.id, level, variant: res.variant });
-    return NextResponse.json({ conversationId: conv.id, reply: res.data.reply, audioUrl });
+    logEvent(s, "talk.start", { conversationId: conv.id, scenario: sc.id, level, variant: res.variant });
+    // audio is fetched by the client (/api/tts) so the greeting shows without waiting for it
+    return NextResponse.json({ conversationId: conv.id, reply: res.data.reply });
   } catch (e) {
     return aiFailure(e);
   }

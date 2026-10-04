@@ -13,6 +13,6 @@ export async function PATCH(req: Request) {
   if (isResponse(b)) return b;
   const { error } = await s.supabase.from("feedback_items").update({ status: b.status }).eq("id", b.id).eq("user_id", s.user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logEvent(s, `feedback.${b.status}`, { id: b.id });
+  logEvent(s, `feedback.${b.status}`, { id: b.id });
   return NextResponse.json({ ok: true });
 }

@@ -22,6 +22,6 @@ export async function POST(req: Request) {
     { onConflict: "user_id,text_id" },
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logEvent(s, b.finished ? "read.finish" : "read.page", { textId: b.textId, page: b.page });
+  logEvent(s, b.finished ? "read.finish" : "read.page", { textId: b.textId, page: b.page });
   return NextResponse.json({ ok: true });
 }

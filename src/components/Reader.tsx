@@ -62,6 +62,7 @@ export function Reader(props: {
     const sentence = sentenceAround(paragraph, term);
     setSel({ term, sentence, key });
     setGloss(null);
+    setErr("");
     setSaved(learning.has(norm(term)) ? "learning" : "");
     setState("loading");
     track("word.tap", { term, unknown: unknown.has(norm(term)), textId: props.textId, phrase: term.includes(" ") });
@@ -84,6 +85,7 @@ export function Reader(props: {
 
   async function save(status: "learning" | "known") {
     if (!sel) return;
+    setErr("");
     const r = await fetch("/api/words", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -98,17 +100,20 @@ export function Reader(props: {
         context: sel.sentence,
         source: props.source,
       }),
-    });
-    if (r.ok) {
-      setSaved(status);
-      const n = norm(sel.term);
-      setUnknown((u) => {
-        const x = new Set(u);
-        x.delete(n);
-        return x;
-      });
-      if (status === "learning") setLearning((l) => new Set(l).add(n));
+    }).catch(() => null);
+    if (!r?.ok) {
+      track("word.save_failed", { term: sel.term, status: r?.status ?? null });
+      setErr("Не сохранилось — проверьте интернет и нажмите ещё раз.");
+      return;
     }
+    setSaved(status);
+    const n = norm(sel.term);
+    setUnknown((u) => {
+      const x = new Set(u);
+      x.delete(n);
+      return x;
+    });
+    if (status === "learning") setLearning((l) => new Set(l).add(n));
   }
 
   return (
@@ -200,6 +205,7 @@ export function Reader(props: {
                 <span className="small muted" lang={langAttr} style={{ fontFamily: "var(--f-read)", fontStyle: "italic" }}>
                   «{sel.sentence}»
                 </span>
+                {err && state !== "error" && <span className="error">{err}</span>}
                 <div className="row" style={{ gap: 8 }}>
                   <button type="button" className="btn" disabled={saved !== ""} onClick={() => save("learning")}>
                     {saved === "learning" ? "В моих словах" : "Сохранить"}

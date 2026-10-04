@@ -14,10 +14,16 @@ interface Item {
 /** Hint first, answer on request — she gets the chance to find the fix herself. */
 export function FixCard({ item, lang }: { item: Item; lang: "no" | "en" }) {
   const [status, setStatus] = useState(item.status);
+  const [failed, setFailed] = useState(false);
   const langAttr = lang === "no" ? "nb" : "en";
   async function mark(s: "self_fixed" | "revealed") {
     setStatus(s);
-    await fetch("/api/feedback", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, status: s }) });
+    setFailed(false);
+    const r = await fetch("/api/feedback", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, status: s }) }).catch(() => null);
+    if (!r?.ok) {
+      setStatus("open");
+      setFailed(true);
+    }
   }
   return (
     <div className="card">
@@ -29,6 +35,7 @@ export function FixCard({ item, lang }: { item: Item; lang: "no" | "en" }) {
       <span>
         <b>Подсказка:</b> {item.hint}
       </span>
+      {failed && <span className="error">Не сохранилось — проверьте интернет и нажмите ещё раз.</span>}
       {status === "open" ? (
         <div className="row">
           <button type="button" className="btn" onClick={() => mark("self_fixed")}>

@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { publicEnv } from "@/lib/env";
 
 /** Supabase client acting as the signed-in user (RLS applies). One per request. */
@@ -22,9 +23,20 @@ export async function createClient() {
   });
 }
 
-/** Returns the signed-in user or null. Uses getUser(), which validates the token with Supabase. */
-export async function getUser() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  return { supabase, user: data.user };
+export interface AuthUser {
+  id: string;
+  email: string | null;
 }
+
+/**
+ * Returns the signed-in user or null. getClaims() verifies the JWT signature locally
+ * (asymmetric signing keys) and only falls back to a network call for legacy secrets.
+ * Cached per request, so the layout and the page share one check.
+ */
+export const getUser = cache(async () => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const c = data?.claims;
+  const user: AuthUser | null = c?.sub ? { id: c.sub, email: typeof c.email === "string" ? c.email : null } : null;
+  return { supabase, user };
+});

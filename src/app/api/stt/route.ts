@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   if (audio.size > MAX_BYTES) return NextResponse.json({ error: "Запись слишком длинная." }, { status: 413 });
   try {
     const t = await transcribe(audio, lang, s.user.id, durationSec);
-    await logEvent(s, "speech.transcribed", { purpose: String(form.get("purpose") ?? ""), provider: t.provider, seconds: durationSec, chars: t.text.length });
+    logEvent(s, "speech.transcribed", { purpose: String(form.get("purpose") ?? ""), provider: t.provider, seconds: durationSec, chars: t.text.length });
     return NextResponse.json({ text: t.text });
   } catch (e) {
     console.error(e);

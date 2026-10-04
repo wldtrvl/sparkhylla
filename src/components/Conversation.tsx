@@ -35,7 +35,7 @@ export function Conversation({ scenario, serverStt }: Props) {
         if (!r.ok) throw new Error(d.error);
         setConvId(d.conversationId);
         setLines([{ role: "tutor", text: d.reply }]);
-        speak(d.reply, scenario.lang, { url: d.audioUrl });
+        speak(d.reply, scenario.lang);
       } catch (e) {
         setErr(e instanceof Error ? e.message : "Не удалось начать разговор.");
       } finally {
@@ -63,7 +63,7 @@ export function Conversation({ scenario, serverStt }: Props) {
         if (!r.ok) throw new Error(d.error);
         setLines((l) => [...l, { role: "learner", text: d.learnerText, notes: d.noteCount }, { role: "tutor", text: d.reply }]);
         setGoals(d.goalsDone);
-        speak(d.reply, scenario.lang, { url: d.audioUrl });
+        speak(d.reply, scenario.lang);
       } catch (e) {
         setErr(e instanceof Error ? e.message : "Ошибка");
       } finally {
@@ -118,7 +118,7 @@ export function Conversation({ scenario, serverStt }: Props) {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setHelp({ phrase: d.phrase, translation: d.translation });
-      speak(d.phrase, scenario.lang, { url: d.audioUrl, rate: 0.8 });
+      speak(d.phrase, scenario.lang, { rate: 0.8 });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -233,7 +233,7 @@ export function Conversation({ scenario, serverStt }: Props) {
                   {goals.includes(g.id) ? "✓" : ""}
                 </span>
                 <span>{g.ru}</span>
-                <span className="sr-only" style={{ position: "absolute", left: -9999 }}>
+                <span className="sr-only">
                   {goals.includes(g.id) ? "выполнено" : "ещё нет"}
                 </span>
               </div>

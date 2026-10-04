@@ -27,6 +27,7 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
   const [given, setGiven] = useState("");
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [gaveUp, setGaveUp] = useState(false); // "Не помню" before answering: show the word, then grade as forgot
   const [mode, setMode] = useState<"typed" | "voice" | "button">("button");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -88,19 +89,35 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
     }
   }
 
+  function giveUp() {
+    track("review.gave_up", { wordId: card.id });
+    setGaveUp(true);
+    setRevealed(true);
+    setMsg("");
+    speak(card.term, lang, { rate: 0.85 });
+  }
+
   async function grade(answer: "forgot" | "hard" | "good") {
     setBusy(true);
-    await fetch("/api/review", {
+    setMsg("");
+    const r = await fetch("/api/review", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ wordId: card.id, answer, mode, given: given || undefined, elapsedMs: Date.now() - shownAt.current }),
-    }).catch(() => {});
+    }).catch(() => null);
+    if (!r?.ok) {
+      track("review.save_failed", { wordId: card.id, status: r?.status ?? null });
+      setMsg("Ответ не сохранился — проверьте интернет и нажмите ещё раз.");
+      setBusy(false);
+      return;
+    }
     // a forgotten card comes back once more at the end of today's session
     if (answer === "forgot" && queue.filter((c) => c.id === card.id).length < 2) setQueue((q) => [...q, card]);
     setI((x) => x + 1);
     setGiven("");
     setVerdict(null);
     setRevealed(false);
+    setGaveUp(false);
     setMode("button");
     setBusy(false);
   }
@@ -154,7 +171,7 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
           </div>
           {(msg || rec.error) && <p className="error">{msg || rec.error}</p>}
           <div className="row">
-            <button type="button" className="btn ghost" onClick={() => grade("forgot")} disabled={busy}>
+            <button type="button" className="btn ghost" onClick={giveUp} disabled={busy}>
               Не помню
             </button>
             <button type="button" className="btn soft" onClick={() => (given.trim() ? check(given, "typed") : (setRevealed(true), speak(card.term, lang, { rate: 0.85 })))} disabled={busy}>
@@ -171,12 +188,25 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
               {verdict === "wrong" && <>Вы сказали «{given}». Правильно — <b lang={langAttr}>{card.term}</b></>}
             </div>
           )}
+          {!g && (
+            <div lang={langAttr} style={{ fontFamily: "var(--f-read)", fontSize: 28, color: "var(--cloth)", fontWeight: 600 }}>
+              {card.term}
+            </div>
+          )}
           {card.note && <span className="small muted">{card.note}</span>}
           <div className="row">
             <button type="button" className="btn soft small" onClick={() => speak(card.context ?? card.term, lang, { rate: 0.85 })}>
               Слушать
             </button>
           </div>
+          {msg && <p className="error">{msg}</p>}
+          {gaveUp ? (
+            <div className="row">
+              <button type="button" className="btn" onClick={() => grade("forgot")} disabled={busy}>
+                Запомнила, дальше
+              </button>
+            </div>
+          ) : (
           <div className="row">
             <button type="button" className="btn ghost" onClick={() => grade("forgot")} disabled={busy}>
               Не вспомнила
@@ -196,6 +226,7 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
               Вспомнила
             </button>
           </div>
+          )}
         </>
       )}
     </div>

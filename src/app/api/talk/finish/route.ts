@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         status: "learning", source: `talk:${b.conversationId}`, fsrs: newCard(now), due: now.toISOString(),
       });
     }
-    await logEvent(s, "talk.finish", {
+    logEvent(s, "talk.finish", {
       conversationId: b.conversationId,
       turns: loaded.history.filter((h) => h.role === "learner").length,
       goalsDone: loaded.conv.goals_done,
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       notesTotal: loaded.notes.length,
       variant: res.variant,
     });
-    await logEvent(s, "decision.feedback_selected", { conversationId: b.conversationId, chosen: fixes.map((f) => f.rule_key), candidates: loaded.notes.map((n: { rule_key?: string }) => n.rule_key ?? "other") });
+    logEvent(s, "decision.feedback_selected", { conversationId: b.conversationId, chosen: fixes.map((f) => f.rule_key), candidates: loaded.notes.map((n: { rule_key?: string }) => n.rule_key ?? "other") });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return aiFailure(e);

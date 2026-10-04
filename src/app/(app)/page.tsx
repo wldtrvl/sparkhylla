@@ -43,7 +43,7 @@ export default async function DeskPage() {
   const days = new Set((activity.data ?? []).filter((d) => Number(d.minutes) >= 1).map((d) => String(d.day)));
   const week = clock.dayKeys(7);
 
-  await logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id });
+  logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id });
 
   const date = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Oslo" }).format(new Date());
   const name = s.profile.display_name;

@@ -1,7 +1,7 @@
 import "server-only";
 import { serverEnv } from "@/lib/env";
 import { geminiThinking } from "@/lib/ai/providers";
-import { adminClient } from "@/lib/supabase/admin";
+import { insertLater } from "@/lib/log";
 
 export interface Transcript {
   text: string;
@@ -73,14 +73,14 @@ export async function transcribe(audio: Blob, lang: Lang, userId: string, durati
     const started = Date.now();
     try {
       const text = await p.run(audio, lang);
-      await adminClient().from("speech_calls").insert({
+      insertLater("speech_calls", {
         user_id: userId, kind: "stt", provider: name, model: name === "google" ? serverEnv.geminiSttModel() : p.model, lang, units: durationSec,
         cost_usd: p.perMinute != null ? (durationSec / 60) * p.perMinute : null, latency_ms: Date.now() - started, ok: true,
       });
       return { text, provider: name };
     } catch (e) {
       lastErr = e;
-      await adminClient().from("speech_calls").insert({
+      insertLater("speech_calls", {
         user_id: userId, kind: "stt", provider: name, model: name === "google" ? serverEnv.geminiSttModel() : p.model, lang, units: durationSec,
         latency_ms: Date.now() - started, ok: false, error: e instanceof Error ? e.message.slice(0, 400) : String(e),
       });

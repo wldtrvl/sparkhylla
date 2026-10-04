@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     .match({ lang: body.lang, ui_lang: s.profile.ui_lang, term: term.toLowerCase(), context_hash: contextHash })
     .maybeSingle();
   if (cached.data) {
-    await logEvent(s, "word.gloss", { term, cached: true, textId: body.textId });
+    logEvent(s, "word.gloss", { term, cached: true, textId: body.textId });
     return NextResponse.json({ gloss: cached.data.payload, cached: true });
   }
   try {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       { lang: body.lang, ui_lang: s.profile.ui_lang, term: term.toLowerCase(), context_hash: contextHash, payload: res.data },
       { onConflict: "lang,ui_lang,term,context_hash" },
     );
-    await logEvent(s, "word.gloss", { term, cached: false, variant: res.variant, textId: body.textId });
+    logEvent(s, "word.gloss", { term, cached: false, variant: res.variant, textId: body.textId });
     return NextResponse.json({ gloss: res.data, cached: false });
   } catch (e) {
     return aiFailure(e);

@@ -31,7 +31,9 @@ Before every commit: `npm run typecheck && npm test && npm run lint`.
   - `pricing.ts`: USD per 1M tokens.
 - `src/lib/learning/`: coverage (text fit), FSRS (`srs.ts`), answer checking, quotes, grammar map (`RULE_KEYS`).
 - `src/lib/speech/`: STT (OpenAI or Gemini) and TTS (Google or OpenAI, cached in the `tts` bucket).
-- `src/lib/session.ts`: `requireSession` for pages, `apiSession` and `logEvent` for API routes. `src/components/tracker.tsx` holds the client `track()`.
+- `src/lib/session.ts`: `requireSession` for pages (cached per request), `apiSession` and `logEvent` for API routes. `src/components/tracker.tsx` holds the client `track()`.
+- `src/lib/log.ts`: `insertLater()` writes `events`, `llm_calls` and `speech_calls` rows in `after()`, so logging never delays a response. Don't `await` log writes in request code.
+- `src/app/auth/dev/route.ts`: local sign-in without email (`DEV_LOGIN_EMAIL` in `.env.local`, `next dev` only).
 - `supabase/migrations/NNNN_*.sql` hold the schema, and `supabase/seed.sql` holds quotes, scenarios and external books.
 
 ## Rules for changes

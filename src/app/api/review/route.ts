@@ -39,6 +39,6 @@ export async function POST(req: Request) {
     state_before: res.before,
     state_after: res.after,
   });
-  await logEvent(s, "review.grade", { wordId: w.id, answer: b.answer, mode: b.mode, auto, next_due: res.due.toISOString() });
+  logEvent(s, "review.grade", { wordId: w.id, answer: b.answer, mode: b.mode, auto, next_due: res.due.toISOString() });
   return NextResponse.json({ due: res.due.toISOString() });
 }

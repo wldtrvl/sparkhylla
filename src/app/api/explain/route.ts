@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       temperature: 0.4,
       prompt: explainPrompt({ lang: topic.lang, uiLang: s.profile.ui_lang, level: s.profile.levels[topic.lang]?.reading ?? topic.level, title: topic.title, body: topic.body }),
     });
-    await logEvent(s, "grammar.explain", { key: b.key, variant: res.variant });
+    logEvent(s, "grammar.explain", { key: b.key, variant: res.variant });
     return NextResponse.json({ text: res.data });
   } catch (e) {
     return aiFailure(e);

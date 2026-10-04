@@ -23,6 +23,6 @@ export async function PATCH(req: Request) {
   if (body.settings) patch.settings = { ...s.profile.settings, ...body.settings };
   const { error } = await s.supabase.from("profiles").update(patch).eq("user_id", s.user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (body.levels) await logEvent(s, "decision.level_set", { from: s.profile.levels, to: body.levels, by: "manual" });
+  if (body.levels) logEvent(s, "decision.level_set", { from: s.profile.levels, to: body.levels, by: "manual" });
   return NextResponse.json({ ok: true });
 }

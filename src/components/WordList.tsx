@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { speak } from "./audio";
+import { track } from "./tracker";
 
 export interface WordRow {
   id: string;
@@ -28,6 +29,7 @@ export function WordList({ lang, words }: { lang: "no" | "en"; words: WordRow[] 
   const [tr, setTr] = useState("");
   const [ctx, setCtx] = useState("");
   const [busy, setBusy] = useState(false);
+  const [addError, setAddError] = useState("");
   const router = useRouter();
   const shown = useMemo(() => {
     const x = q.trim().toLowerCase();
@@ -38,11 +40,18 @@ export function WordList({ lang, words }: { lang: "no" | "en"; words: WordRow[] 
     e.preventDefault();
     if (!term.trim() || !tr.trim()) return;
     setBusy(true);
-    await fetch("/api/words", {
+    setAddError("");
+    const r = await fetch("/api/words", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ lang, term: term.trim(), translation: tr.trim(), context: ctx.trim() || undefined, kind: term.trim().includes(" ") ? "phrase" : "word", source: "manual" }),
-    });
+    }).catch(() => null);
+    if (!r?.ok) {
+      track("word.add_failed", { status: r?.status ?? null });
+      setAddError("Слово не сохранилось — проверьте интернет и нажмите «Добавить» ещё раз.");
+      setBusy(false);
+      return;
+    }
     setTerm("");
     setTr("");
     setCtx("");
@@ -101,8 +110,9 @@ export function WordList({ lang, words }: { lang: "no" | "en"; words: WordRow[] 
           <input id="c" className="input" lang={lang === "no" ? "nb" : "en"} value={ctx} onChange={(e) => setCtx(e.target.value)} />
         </div>
         <button className="btn soft" type="submit" disabled={busy}>
-          Добавить
+          {busy ? "Сохраняю…" : "Добавить"}
         </button>
+        {addError && <p className="error">{addError}</p>}
       </form>
     </>
   );

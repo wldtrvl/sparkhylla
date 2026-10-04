@@ -5,7 +5,7 @@ import { PageNav } from "@/components/PageNav";
 import { Reader } from "@/components/Reader";
 import { coverage } from "@/lib/learning/coverage";
 import { paginate, type TextRow } from "@/lib/library";
-import { knownSets, requireSession } from "@/lib/session";
+import { requireSession, wordState } from "@/lib/session";
 
 export default async function ReadPage({ params, searchParams }: PageProps<"/read/[id]">) {
   const s = await requireSession();
@@ -54,13 +54,14 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
   }
 
   const pages = paginate(t.body);
-  const { data: prog } = await s.supabase.from("reading_progress").select("page").eq("user_id", s.user.id).eq("text_id", t.id).maybeSingle();
+  const [{ data: prog }, { known, learning }] = await Promise.all([
+    sp.page != null ? Promise.resolve({ data: null }) : s.supabase.from("reading_progress").select("page").eq("user_id", s.user.id).eq("text_id", t.id).maybeSingle(),
+    wordState(s, t.lang),
+  ]);
   const pageIdx = Math.min(Math.max(0, sp.page != null ? Number(sp.page) || 0 : (prog?.page ?? 0)), pages.length - 1);
-  const known = await knownSets(s, t.lang);
   const pageText = pages[pageIdx].join("\n\n");
   const cov = coverage(pageText, known);
   const whole = coverage(t.body, known);
-  const { data: learningRows } = await s.supabase.from("words").select("term").eq("user_id", s.user.id).eq("lang", t.lang).eq("status", "learning");
 
   return (
     <>
@@ -81,7 +82,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
           source={`text:${t.id}`}
           paragraphs={pages[pageIdx]}
           unknown={cov.unknown}
-          learning={(learningRows ?? []).map((w) => String(w.term).toLowerCase())}
+          learning={learning}
         />
         <PageNav textId={t.id} page={pageIdx} total={pages.length} coverage={whole.coverage} />
       </div>

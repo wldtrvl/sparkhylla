@@ -35,10 +35,24 @@ const ICONS: Record<string, React.ReactNode> = {
   coach: <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />,
 };
 
-export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "en"; isCoach: boolean; levels: string }) {
-  const path = usePathname();
+/** Switch the active language (Norsk/English); shared by the sidebar and the phone top bar. */
+function useLangSwitch(activeLang: "no" | "en", where: "sidebar" | "mobile") {
   const router = useRouter();
   const [pending, start] = useTransition();
+  function switchLang(lang: "no" | "en") {
+    if (lang === activeLang) return;
+    track("settings.lang_switch", { from: activeLang, to: lang, where });
+    start(async () => {
+      await fetch("/api/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ active_lang: lang }) });
+      router.refresh();
+    });
+  }
+  return { pending, switchLang };
+}
+
+export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "en"; isCoach: boolean; levels: string }) {
+  const path = usePathname();
+  const { pending, switchLang } = useLangSwitch(activeLang, "sidebar");
   const items = [
     { href: "/", label: "Мой стол", icon: "desk" },
     { href: "/library", label: "Библиотека", icon: "library" },
@@ -48,15 +62,6 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
     ...(isCoach ? [{ href: "/coach", label: "Помощник", icon: "coach" }] : []),
   ];
   const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
-
-  function switchLang(lang: "no" | "en") {
-    if (lang === activeLang) return;
-    track("settings.lang_switch", { from: activeLang, to: lang });
-    start(async () => {
-      await fetch("/api/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ active_lang: lang }) });
-      router.refresh();
-    });
-  }
 
   return (
     <aside className="sidebar">
@@ -92,26 +97,26 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
   );
 }
 
+/** Phone top bar: the sidebar footer is hidden below 860 px, so language and settings live here. */
 export function MobileLangSwitch({ activeLang }: { activeLang: "no" | "en" }) {
-  const router = useRouter();
+  const { pending, switchLang } = useLangSwitch(activeLang, "mobile");
   return (
     <div className="mobile-top">
       <b style={{ fontFamily: "var(--f-display)", fontSize: 26 }}>Språkhylla</b>
-      <div className="langswitch" style={{ background: "var(--cloth)" }}>
-        {(["no", "en"] as const).map((l) => (
-          <button
-            key={l}
-            type="button"
-            aria-pressed={activeLang === l}
-            onClick={async () => {
-              await fetch("/api/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ active_lang: l }) });
-              router.refresh();
-            }}
-            style={{ padding: "6px 12px" }}
-          >
-            {l === "no" ? "Norsk" : "English"}
-          </button>
-        ))}
+      <div className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+        <div className="langswitch" style={{ background: "var(--cloth)" }} aria-busy={pending}>
+          {(["no", "en"] as const).map((l) => (
+            <button key={l} type="button" aria-pressed={activeLang === l} onClick={() => switchLang(l)} style={{ padding: "6px 12px" }}>
+              {l === "no" ? "Norsk" : "English"}
+            </button>
+          ))}
+        </div>
+        <Link href="/settings" className="icon-btn" aria-label="Настройки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+          </svg>
+        </Link>
       </div>
     </div>
   );

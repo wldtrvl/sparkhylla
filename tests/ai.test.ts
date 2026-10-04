@@ -5,7 +5,7 @@ import { extractJson } from "@/lib/ai/json";
 import { costUsd } from "@/lib/ai/pricing";
 import { adapters } from "@/lib/ai/providers";
 import { planAttempts } from "@/lib/ai/routing";
-import type { Route } from "@/lib/ai/types";
+import { ProviderError, type Route } from "@/lib/ai/types";
 
 describe("json extraction", () => {
   it("handles bare, fenced and wrapped JSON", () => {
@@ -76,6 +76,29 @@ describe("execute", () => {
     expect(r2.route.provider).toBe("google");
     fail.mockRestore();
     ok.mockRestore();
+  });
+
+  it("retries a rate-limited route once before falling back", async () => {
+    const flaky = vi
+      .spyOn(adapters.anthropic, "complete")
+      .mockRejectedValueOnce(new ProviderError("HTTP 429", 429, true))
+      .mockResolvedValueOnce({ text: '{"x":3}', inputTokens: 1, outputTokens: 1 });
+    const logs: unknown[] = [];
+    const r = await execute({
+      task: "gloss",
+      prompt: { id: "t", version: 1, system: "s", messages: [{ role: "user", content: "hi" }] },
+      attempts: [
+        { provider: "anthropic", model: "m", weight: 1 },
+        { provider: "google", model: "gemini-2.5-flash", weight: 1 },
+      ],
+      schema: z.object({ x: z.number() }),
+      maxTokens: 10,
+      onAttempt: (l) => void logs.push(l),
+    });
+    expect(r.data).toEqual({ x: 3 });
+    expect(r.route.provider).toBe("anthropic");
+    expect(logs).toHaveLength(2);
+    flaky.mockRestore();
   });
 });
 

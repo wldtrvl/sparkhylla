@@ -47,6 +47,8 @@ export interface ExecuteResult<T> {
 
 export class NoRouteError extends Error {}
 
+const RETRY_DELAY_MS = 400;
+
 export async function execute<T = string>(opts: ExecuteOptions<T>): Promise<ExecuteResult<T>> {
   if (!opts.attempts.length) throw new NoRouteError(`No AI provider configured for task "${opts.task}". Add an API key in .env.`);
   let lastError: unknown;
@@ -54,6 +56,7 @@ export async function execute<T = string>(opts: ExecuteOptions<T>): Promise<Exec
   for (const route of opts.attempts) {
     const adapter = adapters[route.provider];
     let messages = opts.prompt.messages;
+    let retried = false;
     // up to 2 tries per route: the original, and one JSON repair if parsing/validation failed
     for (let repair = 0; repair < (opts.schema ? 2 : 1); repair++) {
       n++;
@@ -111,8 +114,14 @@ export async function execute<T = string>(opts: ExecuteOptions<T>): Promise<Exec
         log.error = e instanceof Error ? e.message.slice(0, 500) : String(e);
         await opts.onAttempt?.(log);
         lastError = e;
-        // non-retryable client errors (bad key, bad model id) → move on to the next route immediately
-        if (e instanceof ProviderError && !e.retryable) break;
+        // rate limit or server error (429/5xx): one short retry on the same route, then fall back.
+        // Timeouts and client errors (bad key, bad model id) move on to the next route immediately.
+        if (e instanceof ProviderError && e.retryable && e.status != null && !retried) {
+          retried = true;
+          repair--;
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+          continue;
+        }
         break;
       }
     }

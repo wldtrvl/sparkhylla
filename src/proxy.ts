@@ -20,10 +20,11 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  const { data } = await supabase.auth.getUser();
+  // getClaims() refreshes an expired session and verifies the JWT locally (no Auth round trip).
+  const { data } = await supabase.auth.getClaims();
   const path = request.nextUrl.pathname;
   const isPublic = path.startsWith("/login") || path.startsWith("/auth") || path.startsWith("/api");
-  if (!data.user && !isPublic) {
+  if (!data?.claims?.sub && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

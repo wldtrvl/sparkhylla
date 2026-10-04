@@ -46,7 +46,7 @@ Tasks are `gloss`, `talk_open`, `tutor_turn`, `talk_help`, `talk_feedback` and `
 
 1. **Supabase**: create a project at supabase.com and open the SQL editor.
    - Run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql`.
-   - Under Authentication → URL configuration, set Site URL to your domain (or `http://localhost:3000`) and add `<domain>/auth/callback` to redirect URLs.
+   - Under Authentication → URL configuration, set Site URL to your domain (or `http://localhost:3000`) and add `<domain>/login` (and `http://localhost:3000/**` for local work) to redirect URLs. Sign-in links use the implicit flow so they work in any browser with the default email template.
 2. **Keys**: `cp .env.example .env.local` and fill in the Supabase URL and anon key, the service-role key, at least one AI key, and optionally speech keys.
    - Without STT she can type in conversations.
    - Without TTS the browser's own voice is used. Norwegian quality varies; Google Cloud TTS sounds much better.

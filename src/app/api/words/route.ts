@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   const q = existing ? s.supabase.from("words").update(row).eq("id", existing.id).select("id").single() : s.supabase.from("words").insert(row).select("id").single();
   const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logEvent(s, b.status === "known" ? "word.mark_known" : "word.save", { term: b.term, lang: b.lang, kind: b.kind, source: b.source, existed: !!existing });
+  logEvent(s, b.status === "known" ? "word.mark_known" : "word.save", { term: b.term, lang: b.lang, kind: b.kind, source: b.source, existed: !!existing });
   return NextResponse.json({ id: data.id });
 }
 
@@ -55,6 +55,6 @@ export async function DELETE(req: Request) {
   if (isResponse(b)) return b;
   const { error } = await s.supabase.from("words").delete().eq("id", b.id).eq("user_id", s.user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await logEvent(s, "word.delete", { id: b.id });
+  logEvent(s, "word.delete", { id: b.id });
   return NextResponse.json({ ok: true });
 }

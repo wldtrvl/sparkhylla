@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { serverEnv } from "@/lib/env";
+import { insertLater } from "@/lib/log";
 import { adminClient } from "@/lib/supabase/admin";
 
 type Lang = "no" | "en";
@@ -58,7 +59,7 @@ export async function synthesize(text: string, lang: Lang, rate: number, userId:
     const publicUrl = admin.storage.from("tts").getPublicUrl(path).data.publicUrl;
     const head = await fetch(publicUrl, { method: "HEAD" }).catch(() => null);
     if (head?.ok) {
-      await admin.from("speech_calls").insert({ user_id: userId, kind: "tts", provider: name, lang, units: clean.length, cost_usd: 0, ok: true, cached: true });
+      insertLater("speech_calls", { user_id: userId, kind: "tts", provider: name, lang, units: clean.length, cost_usd: 0, ok: true, cached: true });
       return publicUrl;
     }
     const started = Date.now();
@@ -66,13 +67,13 @@ export async function synthesize(text: string, lang: Lang, rate: number, userId:
       const mp3 = await p.run(clean, lang, rate);
       const up = await admin.storage.from("tts").upload(path, mp3, { contentType: "audio/mpeg", upsert: true });
       if (up.error) throw new Error(up.error.message);
-      await admin.from("speech_calls").insert({
+      insertLater("speech_calls", {
         user_id: userId, kind: "tts", provider: name, lang, units: clean.length,
         cost_usd: p.perMillionChars != null ? (clean.length / 1e6) * p.perMillionChars : null, latency_ms: Date.now() - started, ok: true,
       });
       return publicUrl;
     } catch (e) {
-      await admin.from("speech_calls").insert({
+      insertLater("speech_calls", {
         user_id: userId, kind: "tts", provider: name, lang, units: clean.length, latency_ms: Date.now() - started, ok: false,
         error: e instanceof Error ? e.message.slice(0, 400) : String(e),
       });
