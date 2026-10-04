@@ -8,6 +8,7 @@ export type Task =
   | "talk_help" // "help me say it"
   | "talk_feedback" // post-conversation feedback
   | "explain" // grammar explanation + exercise
+  | "translate" // sentence-by-sentence translation of a page (reader, «Перевод рядом»)
   | "judge"; // offline evaluation of other models' outputs
 
 export interface ChatMessage {

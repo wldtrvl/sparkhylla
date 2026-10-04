@@ -270,3 +270,19 @@ table.data td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical
 .title-read { font-family: var(--f-read); font-size: 20px; }
 .display-sm { font-size: clamp(30px, 3.4vw, 42px); }
 .center-screen { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+
+/* ---------- «Перевод рядом»: original and translation sentence by sentence ---------- */
+.prose.bilingual { max-width: none; gap: 18px; }
+.bi-para { display: flex; flex-direction: column; gap: 2px; }
+.bi-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; padding: 3px 8px; margin: 0 -8px; border-radius: 8px; }
+.bi-row:hover { background: var(--paper-2); }
+.bi-src { margin: 0; }
+.bi-tr { font-family: var(--f-ui); font-size: 0.74em; line-height: 1.65; color: var(--muted); padding-top: 0.25em; }
+.bi-tr.pending { opacity: 0.5; }
+.bi-reveal { justify-self: start; border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: 2px 10px; cursor: pointer; font-family: var(--f-ui); }
+.bi-reveal:hover { border-color: var(--cloth); color: var(--cloth); }
+@media (max-width: 860px) {
+  .bi-row { grid-template-columns: minmax(0, 1fr); gap: 2px; margin: 0; padding: 4px 0; }
+  .bi-tr { padding: 0 0 4px 10px; border-left: 3px solid var(--cloth-soft); }
+}
+.btn.soft[aria-pressed="true"] { background: var(--cloth-soft); border-color: var(--cloth); color: var(--cloth); }

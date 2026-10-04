@@ -52,6 +52,23 @@ export function glossPrompt(p: { lang: Lang; uiLang: UiLang; level: string; term
   };
 }
 
+// ---------- translate (reader: «Перевод рядом») ----------
+/** Exactly one translation per sentence, in order: the reader lines them up row by row. */
+export const translateSchema = (n: number) => z.object({ translations: z.array(z.string()).length(n) });
+
+export function translatePrompt(p: { lang: Lang; uiLang: UiLang; sentences: string[] }): PromptSpec {
+  return {
+    id: "translate",
+    version: 1,
+    system:
+      `You translate ${langName(p.lang)} literature and articles into natural ${uiName(p.uiLang)} for a learner who reads the original alongside. ` +
+      `Translate each numbered sentence on its own, faithfully and completely: keep the meaning, tone and names, do not shorten, explain or add anything. ` +
+      `Older spellings (e.g. Norwegian "sig", "kunde", "efter") are translated like their modern forms. A sentence that is only a title is translated as a title.\n` +
+      `Reply with ONLY a JSON object: {"translations": [one ${uiName(p.uiLang)} string per sentence, in the same order]} with exactly ${p.sentences.length} items.`,
+    messages: [{ role: "user", content: JSON.stringify(p.sentences.map((s, i) => ({ n: i + 1, text: s }))) }],
+  };
+}
+
 // ---------- conversation ----------
 export interface ScenarioCtx {
   persona: string;

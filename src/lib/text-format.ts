@@ -33,3 +33,29 @@ export function paginate(body: string, target = 1600): string[][] {
   if (cur.length) pages.push(cur);
   return pages.length ? pages : [[""]];
 }
+
+/** Abbreviations that end with a full stop but do not end a sentence (English and Norwegian). */
+const ABBREVIATIONS = /\b(Mr|Mrs|Ms|Dr|St|Mt|Jr|Sr|vs|etc|e\.g|i\.e|f\.eks|bl\.a|ca|nr|kl|osv|dvs|mht|pga|ev|jf)\.$/i;
+
+/**
+ * Split a paragraph into sentences for sentence-by-sentence translation: after . ! ? … (and any closing
+ * quote or bracket) when the next sentence starts with a capital, a digit or an opening quote or dash.
+ */
+export function splitSentences(paragraph: string): string[] {
+  const text = paragraph.trim();
+  if (!text) return [];
+  const out: string[] = [];
+  const re = /[.!?…]+["»”’)\]]*\s+(?=["«“‘(\[–—-]*\s*[\p{Lu}\d])/gu;
+  let start = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const end = m.index + m[0].trimEnd().length;
+    const candidate = text.slice(start, end);
+    if (ABBREVIATIONS.test(candidate) || /(^|\s)\p{Lu}\.$/u.test(candidate)) continue; // "Mr." or an initial "J."
+    out.push(candidate.trim());
+    start = m.index + m[0].length;
+  }
+  const rest = text.slice(start).trim();
+  if (rest) out.push(rest);
+  return out;
+}

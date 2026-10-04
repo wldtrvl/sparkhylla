@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { htmlLang, isHeading, paragraphText, WORD_PATTERN } from "@/lib/text-format";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { htmlLang, isHeading, paragraphText, splitSentences, WORD_PATTERN } from "@/lib/text-format";
 import { speak, speakToEnd, stopAudio, ttsUrl } from "./audio";
 import { track } from "./tracker";
 
@@ -40,6 +40,37 @@ function sentenceAround(paragraph: string, term: string): string {
 
 const norm = (w: string) => w.toLowerCase().replace(/’/g, "'");
 
+/** A reading preference kept in this browser across pages (the reader remounts on every page turn). */
+function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
+  const value = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("storage", onChange);
+      window.addEventListener(`flag:${key}`, onChange);
+      return () => {
+        window.removeEventListener("storage", onChange);
+        window.removeEventListener(`flag:${key}`, onChange);
+      };
+    },
+    () => {
+      try {
+        return localStorage.getItem(key) === "1";
+      } catch {
+        return false;
+      }
+    },
+    () => false,
+  );
+  const set = (v: boolean) => {
+    try {
+      localStorage.setItem(key, v ? "1" : "0");
+    } catch {
+      /* private mode: the flag lasts until the page reloads */
+    }
+    window.dispatchEvent(new Event(`flag:${key}`));
+  };
+  return [value, set];
+}
+
 export function Reader(props: {
   lang: Lang;
   textId?: string;
@@ -59,6 +90,13 @@ export function Reader(props: {
 
   const texts = useMemo(() => props.paragraphs.map(paragraphText), [props.paragraphs]);
   const paras = useMemo(() => texts.map(pieces), [texts]);
+  // «Перевод рядом»: each paragraph's sentences with their translation, fetched on request
+  const sentences = useMemo(() => props.paragraphs.map((p, i) => (isHeading(p) ? [texts[i]] : splitSentences(texts[i]))), [props.paragraphs, texts]);
+  const [split, setSplit] = useStoredFlag("sh_split");
+  const [hideTr, setHideTr] = useStoredFlag("sh_split_hide");
+  const [tr, setTr] = useState<string[][] | null>(null);
+  const [trState, setTrState] = useState<"idle" | "loading" | "error">("idle");
+  const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
   const [speaking, setSpeaking] = useState<number | null>(null); // paragraph being read aloud
   const [phrase, setPhrase] = useState<{ text: string; para: number; x: number; y: number } | null>(null);
   const glossRef = useRef<HTMLDivElement>(null);
@@ -125,6 +163,27 @@ export function Reader(props: {
     }
     setSpeaking(null);
   }
+
+  async function loadTranslations() {
+    setTrState("loading");
+    const flat = sentences.flat();
+    try {
+      const r = await fetch("/api/translate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lang: props.lang, textId: props.textId, sentences: flat }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      let k = 0;
+      setTr(sentences.map((ss) => ss.map(() => (d.translations as string[])[k++] ?? "")));
+      setTrState("idle");
+    } catch {
+      setTrState("error");
+    }
+  }
+
+  // translate the page when the split view is on (also after a page turn) and nothing is loaded yet
+  useEffect(() => {
+    if (split && !tr && trState === "idle") void Promise.resolve().then(loadTranslations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [split]);
 
   function stopReading() {
     stopAudio();
@@ -200,6 +259,28 @@ export function Reader(props: {
     if (status === "learning") setLearning((l) => new Set(l).add(n));
   }
 
+  const words = (ps: { t: string; word: boolean }[], i: number, prefix: string) =>
+    ps.map((x, j) => {
+      if (!x.word) return <span key={j}>{x.t}</span>;
+      const n = norm(x.t);
+      const key = `${prefix}${j}`;
+      const isUnknown = unknown.has(n);
+      const cls = ["w", isUnknown ? "unknown" : "", learning.has(n) ? "learning" : "", sel?.key === key ? "selected" : ""].join(" ");
+      return (
+        <span
+          key={j}
+          data-k={key}
+          className={cls}
+          role={isUnknown ? "button" : undefined}
+          tabIndex={isUnknown ? 0 : undefined}
+          onClick={(e) => window.getSelection()?.toString().trim().includes(" ") || open(x.t, texts[i], key, e.currentTarget.getBoundingClientRect())}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(x.t, texts[i], key, e.currentTarget.getBoundingClientRect()))}
+        >
+          {x.t}
+        </span>
+      );
+    });
+
   return (
     <div className="reader" ref={rootRef}>
       <div className="row listen-bar">
@@ -212,51 +293,100 @@ export function Reader(props: {
             ■ Остановить
           </button>
         )}
+        <button
+          type="button"
+          className="btn soft small"
+          aria-pressed={split}
+          onClick={() => {
+            track("read.split_toggle", { on: !split, textId: props.textId });
+            setSplit(!split);
+          }}
+        >
+          ⇆ Перевод рядом
+        </button>
+        {split && (
+          <button
+            type="button"
+            className="btn soft small"
+            aria-pressed={hideTr}
+            onClick={() => {
+              track("read.split_hide", { on: !hideTr, textId: props.textId });
+              setHideTr(!hideTr);
+            }}
+          >
+            {hideTr ? "Показывать перевод" : "Прятать перевод"}
+          </button>
+        )}
         <span className="small muted reader-tip">
           Нажмите на <span className="w unknown">выделенное</span> слово — появится перевод. Фразу можно выделить.
         </span>
       </div>
-      <div className="prose" lang={langAttr} style={{ fontSize: "var(--read-size, 21px)" }}>
+      {split && trState === "error" && (
+        <p className="error">
+          Перевод не загрузился.{" "}
+          <button type="button" className="btn soft small" onClick={() => loadTranslations()}>
+            Попробовать ещё раз
+          </button>
+        </p>
+      )}
+      <div className={`prose${split ? " bilingual" : ""}`} lang={langAttr} style={{ fontSize: "var(--read-size, 21px)" }}>
         {paras.map((ps, i) => {
           const Tag = isHeading(props.paragraphs[i]) ? "h2" : "p";
+          const listen =
+            Tag === "p" ? (
+              <button
+                type="button"
+                className="para-listen"
+                aria-label="Слушать абзац"
+                title="Слушать абзац"
+                onClick={() => {
+                  track("read.listen", { textId: props.textId, paragraph: i });
+                  readAloud(i);
+                }}
+              >
+                ▶
+              </button>
+            ) : null;
+          if (!split)
+            return (
+              <div key={i} className={`para${speaking === i ? " speaking" : ""}`} data-p={i}>
+                {listen}
+                <Tag className={Tag === "h2" ? "prose-heading" : undefined} onMouseUp={() => onMouseUp(texts[i])}>
+                  {words(ps, i, `${i}:`)}
+                </Tag>
+              </div>
+            );
           return (
-            <div key={i} className={`para${speaking === i ? " speaking" : ""}`} data-p={i}>
-              {Tag === "p" && (
-                <button
-                  type="button"
-                  className="para-listen"
-                  aria-label="Слушать абзац"
-                  title="Слушать абзац"
-                  onClick={() => {
-                    track("read.listen", { textId: props.textId, paragraph: i });
-                    readAloud(i);
-                  }}
-                >
-                  ▶
-                </button>
-              )}
-              <Tag className={Tag === "h2" ? "prose-heading" : undefined} onMouseUp={() => onMouseUp(texts[i])}>
-                {ps.map((x, j) => {
-                  if (!x.word) return <span key={j}>{x.t}</span>;
-                  const n = norm(x.t);
-                  const key = `${i}:${j}`;
-                  const cls = ["w", unknown.has(n) ? "unknown" : "", learning.has(n) ? "learning" : "", sel?.key === key ? "selected" : ""].join(" ");
-                  const isUnknown = unknown.has(n);
-                  return (
-                    <span
-                      key={j}
-                      data-k={key}
-                      className={cls}
-                      role={isUnknown ? "button" : undefined}
-                      tabIndex={isUnknown ? 0 : undefined}
-                      onClick={(e) => window.getSelection()?.toString().trim().includes(" ") || open(x.t, texts[i], key, e.currentTarget.getBoundingClientRect())}
-                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(x.t, texts[i], key, e.currentTarget.getBoundingClientRect()))}
-                    >
-                      {x.t}
-                    </span>
-                  );
-                })}
-              </Tag>
+            <div key={i} className={`para bi-para${speaking === i ? " speaking" : ""}`} data-p={i}>
+              {listen}
+              {sentences[i].map((sentence, k) => {
+                const rowKey = `${i}:${k}`;
+                const shown = !hideTr || revealed.has(rowKey);
+                const t = tr?.[i]?.[k];
+                return (
+                  <div key={k} className="bi-row">
+                    <Tag className={Tag === "h2" ? "prose-heading" : "bi-src"} onMouseUp={() => onMouseUp(texts[i])}>
+                      {words(pieces(sentence), i, `${i}:${k}:`)}
+                    </Tag>
+                    {shown ? (
+                      <span className={`bi-tr${t ? "" : " pending"}`} lang="ru">
+                        {t ?? (trState === "loading" ? "…" : "")}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="bi-tr bi-reveal"
+                        onClick={() => {
+                          track("read.translation_reveal", { textId: props.textId, paragraph: i, sentence: k });
+                          setRevealed((r) => new Set(r).add(rowKey));
+                        }}
+                      >
+                        Показать перевод
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}

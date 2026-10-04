@@ -3,7 +3,7 @@ import { checkAnswer } from "@/lib/learning/answer";
 import { coverage, fitFromLevel, fitGroup, frequencyBand, tokenize } from "@/lib/learning/coverage";
 import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
 import { newCard, schedule } from "@/lib/learning/srs";
-import { paginate, paragraphText } from "@/lib/text-format";
+import { paginate, paragraphText, splitSentences } from "@/lib/text-format";
 
 describe("coverage", () => {
   it("tokenizes Norwegian letters and keeps sentence starts", () => {
@@ -86,5 +86,22 @@ describe("book pages", () => {
     // a short section does not get a page of its own
     expect(pages.flat().map(paragraphText)).toContain("Siste avsnitt.");
     expect(pages.find((pg) => pg.includes("## Kort del"))).toContain("## Neste del");
+  });
+});
+
+describe("sentences", () => {
+  it("splits after . ! ? … and closing quotes, not after abbreviations or initials", () => {
+    expect(splitSentences("Det var en gang en mann. Han bodde i skogen! «Hvor skal du?» spurte kona. Hun visste ikke.")).toEqual([
+      "Det var en gang en mann.",
+      "Han bodde i skogen!",
+      "«Hvor skal du?» spurte kona.",
+      "Hun visste ikke.",
+    ]);
+    expect(splitSentences("Mr. Holmes met Dr. Watson at 10 a.m. in Baker St. today. J. H. Watson was late.")).toEqual([
+      "Mr. Holmes met Dr. Watson at 10 a.m. in Baker St. today.",
+      "J. H. Watson was late.",
+    ]);
+    expect(splitSentences("“Who is it?” said Peter. “Only me.”")).toEqual(["“Who is it?” said Peter.", "“Only me.”"]);
+    expect(splitSentences("Det koster ca. 50 kroner, f.eks. i Oslo.")).toEqual(["Det koster ca. 50 kroner, f.eks. i Oslo."]);
   });
 });

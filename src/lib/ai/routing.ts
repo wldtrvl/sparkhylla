@@ -41,6 +41,10 @@ export const DEFAULT_ROUTES: Record<Task, Route[]> = {
     { provider: "anthropic", model: SONNET, weight: 1 },
     { provider: "google", model: FLASH, weight: 0 },
   ],
+  translate: [
+    { provider: "anthropic", model: HAIKU, weight: 1 },
+    { provider: "google", model: LITE, weight: 0 },
+  ],
   judge: [{ provider: "anthropic", model: SONNET, weight: 1 }],
 };
 

@@ -704,6 +704,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      translation_cache: {
+        Row: {
+          created_at: string;
+          key: string;
+          lang: string;
+          prompt_version: number;
+          sentence: string;
+          translation: string;
+          ui_lang: string;
+        };
+        Insert: {
+          created_at?: string;
+          key: string;
+          lang: string;
+          prompt_version: number;
+          sentence: string;
+          translation: string;
+          ui_lang: string;
+        };
+        Update: {
+          created_at?: string;
+          key?: string;
+          lang?: string;
+          prompt_version?: number;
+          sentence?: string;
+          translation?: string;
+          ui_lang?: string;
+        };
+        Relationships: [];
+      };
       words: {
         Row: {
           context: string | null;
