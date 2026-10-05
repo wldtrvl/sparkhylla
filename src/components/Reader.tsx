@@ -1,4 +1,5 @@
 "use client";
+import { clock } from "@/lib/video";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { htmlLang, isHeading, paragraphText, splitSentences, WORD_PATTERN } from "@/lib/text-format";
 import { speak, speakToEnd, stopAudio, ttsUrl } from "./audio";
@@ -82,6 +83,8 @@ export function Reader(props: {
   unknown: string[];
   learning: string[];
   audioUrl?: string | null; // a real recording of the text: shown instead of the synthetic «Слушать страницу»
+  /** a video transcript: the paragraph being spoken, and a button per paragraph that jumps the video there */
+  video?: { starts: number[]; active: number | null; onSeek: (paragraph: number) => void };
 }) {
   const [unknown, setUnknown] = useState(() => new Set(props.unknown));
   const [learning, setLearning] = useState(() => new Set(props.learning));
@@ -294,7 +297,7 @@ export function Reader(props: {
     <div className="reader" ref={rootRef}>
       {props.audioUrl && <AudioBar src={props.audioUrl} textId={props.textId} />}
       <div className="row listen-bar">
-        {props.audioUrl ? null : speaking == null ? (
+        {props.audioUrl || props.video ? null : speaking == null ? (
           <button type="button" className="btn soft small" onClick={() => readAloud(0)}>
             ▶ Слушать страницу
           </button>
@@ -344,8 +347,20 @@ export function Reader(props: {
       <div className={`prose${split ? " bilingual" : ""}`} lang={langAttr} style={{ fontSize: "var(--read-size, 21px)" }}>
         {paras.map((ps, i) => {
           const Tag = isHeading(props.paragraphs[i]) ? "h2" : "p";
-          const listen =
-            Tag === "p" ? (
+          const at = props.video?.starts[i];
+          const listen = props.video ? (
+            at != null ? (
+              <button
+                type="button"
+                className="para-listen para-seek"
+                aria-label={`Смотреть с ${clock(at)}`}
+                title="Смотреть с этого места"
+                onClick={() => props.video!.onSeek(i)}
+              >
+                {clock(at)}
+              </button>
+            ) : null
+          ) : Tag === "p" ? (
               <button
                 type="button"
                 className="para-listen"
@@ -361,7 +376,7 @@ export function Reader(props: {
             ) : null;
           if (!split)
             return (
-              <div key={i} className={`para${speaking === i ? " speaking" : ""}`} data-p={i}>
+              <div key={i} className={`para${speaking === i || props.video?.active === i ? " speaking" : ""}`} data-p={i}>
                 {listen}
                 <Tag className={Tag === "h2" ? "prose-heading" : undefined} onMouseUp={() => onMouseUp(texts[i])}>
                   {words(ps, i, `${i}:`)}
@@ -369,7 +384,7 @@ export function Reader(props: {
               </div>
             );
           return (
-            <div key={i} className={`para bi-para${speaking === i ? " speaking" : ""}`} data-p={i}>
+            <div key={i} className={`para bi-para${speaking === i || props.video?.active === i ? " speaking" : ""}`} data-p={i}>
               {listen}
               {sentences[i].map((sentence, k) => {
                 const rowKey = `${i}:${k}`;

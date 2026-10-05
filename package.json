@@ -19,6 +19,7 @@
     "import:voa": "tsx --env-file=.env.local scripts/import-voa.ts",
     "import:wiki": "tsx --conditions=react-server --env-file=.env.local scripts/import-wiki.ts",
     "import:bokselskap": "tsx --conditions=react-server --env-file=.env.local scripts/import-bokselskap.ts",
+    "import:ndla": "tsx --conditions=react-server --env-file=.env.local scripts/import-ndla.ts",
     "updates:add": "tsx --conditions=react-server --env-file=.env.local scripts/add-update.ts",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "wordmap:build": "tsx --conditions=react-server --env-file=.env.local scripts/build-wordmap.ts"

@@ -18,6 +18,7 @@ npm run eval        # offline model comparison → eval-results/*.md (needs AI k
 npm run import:gutenberg -- <id> <lang> "<title>" "<author>" <year> <kind> "<note in Russian>"
 npm run import:text -- <file.txt> <lang> "<title>" "<author>" "<year>" "<source url>" "<license>" <kind>
 npm run vocab:build # (re)build text_vocab for in-app books; needed after editing a body by hand
+npm run import:ndla -- [--topics=helse,mat] [--per=20] [--save]   # Norwegian videos from NDLA: CC-licensed, with bokmål subtitles (never «Opphavsrett»)
 npm run wordmap:build -- <no|en> [--step=lemma|tag|link] [--limit=N]   # «Карта слов»: frequency list up to B2 → word_map (AI, resumable, ~$2–3 per language)
 npm run updates:add -- <feature|content|fix> "<title>" "<text>" [/link]   # post to «Что нового» after a user-visible change ships
 ```
@@ -38,6 +39,7 @@ Before every commit: `npm run typecheck && npm test && npm run lint`. After a mi
 - `src/lib/learning/`: coverage (text fit; `buildVocab` + SQL `text_fit()` for the library, kept identical by `tests/sql.test.ts`), FSRS (`srs.ts`), answer checking, quotes, grammar map (`RULE_KEYS`).
 - `src/lib/import/`: coach book import (`/coach/import`). `sources.ts` fetches Gutenberg, Wikisource (incl. collections), Wikipedia and SNL from an allowlist of hosts and decides `rights` (ok / check / blocked; Norway: author died 70+ years ago); `file.ts` reads .txt/.epub; `analyze.ts` flags old spelling. Saving builds the vocabulary via `src/lib/vocab.ts`.
 - `src/lib/learning/wordmap.ts` + `src/lib/wordmap-data.ts`: «Карта слов» (`/map`): the 5000 most frequent forms per language as dictionary words in `word_map` (level from frequency rank, part of speech, theme, translation, «как ещё сказать», root = the basic A1 word a harder word branches from). Her marks are `words` rows with `source = 'map'` (status known/learning); `planMarks()` decides what a mark changes, and a group mark never touches words in review. Lists of her words go through `fetchAll()`: the API returns at most 1000 rows per request.
+- `src/lib/video.ts` + `src/components/VideoReader.tsx`: videos are texts of kind `video` whose body is the transcript; `texts.video` holds the player (NDLA's Brightcove player, or an MP4) and each paragraph's [start, end] seconds, so the reader highlights what is being said and jumps the video to a paragraph. Transcripts come from the source's own subtitles (`parseVtt`, `cuesToParagraphs`).
 - `src/lib/text-format.ts`: book body format (blank-line paragraphs, `## ` headings) and `paginate()`.
 - `src/lib/speech/`: STT (OpenAI or Gemini) and TTS (Google or OpenAI, cached in the `tts` bucket).
 - `src/lib/session.ts`: `requireSession` for pages (cached per request), `apiSession` and `logEvent` for API routes. `src/components/tracker.tsx` holds the client `track()`.

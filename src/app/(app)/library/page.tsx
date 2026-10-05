@@ -3,7 +3,7 @@ import { coverColor, libraryFor, type LibraryItem } from "@/lib/library";
 import { logEvent, requireSession } from "@/lib/session";
 import { htmlLang } from "@/lib/text-format";
 
-const KINDS: Record<string, string> = { novel: "Романы", story: "Рассказы", tale: "Сказки", fable: "Басни", article: "Статьи", news: "Новости", other: "Другое" };
+const KINDS: Record<string, string> = { novel: "Романы", story: "Рассказы", tale: "Сказки", fable: "Басни", article: "Статьи", news: "Новости", video: "Видео", other: "Другое" };
 const GROUPS = [
   { key: "fits", title: "Подходит сейчас" },
   { key: "stretch", title: "Чуть сложнее — на следующий месяц" },
@@ -14,6 +14,11 @@ function Book({ b }: { b: LibraryItem }) {
   return (
     <Link href={`/read/${b.id}`} className="book">
       <div className="cover" style={{ background: coverColor(b.id) }}>
+        {b.kind === "video" && (
+          <span className="cover-play" aria-label="видео">
+            ▶
+          </span>
+        )}
         <b lang={htmlLang(b.lang)}>{b.title}</b>
         <span>{b.author}</span>
       </div>
@@ -34,7 +39,7 @@ function Book({ b }: { b: LibraryItem }) {
         <span className="small muted">уровень {b.est_level ?? "?"}</span>
       )}
       <div className="row gap-6">
-        <span className="chip">{b.availability === "in_app" ? "Читать здесь" : "Библиотека / Bokhylla"}</span>
+        <span className="chip">{b.availability !== "in_app" ? "Библиотека / Bokhylla" : b.kind === "video" ? "Смотреть здесь" : "Читать здесь"}</span>
         {b.audio_url && <span className="chip">запись</span>}
         {b.orthography === "old" && (
           <span className="chip" title="Написание до реформы 1938 года: sig, kunde, efter. Такие слова засчитываются по современному написанию.">

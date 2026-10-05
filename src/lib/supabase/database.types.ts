@@ -698,6 +698,7 @@ export type Database = {
           tags: string[];
           title: string;
           token_count: number | null;
+          video: Json | null;
           vocab_built_at: string | null;
           word_count: number | null;
           year: string | null;
@@ -722,6 +723,7 @@ export type Database = {
           tags?: string[];
           title: string;
           token_count?: number | null;
+          video?: Json | null;
           vocab_built_at?: string | null;
           word_count?: number | null;
           year?: string | null;
@@ -746,6 +748,7 @@ export type Database = {
           tags?: string[];
           title?: string;
           token_count?: number | null;
+          video?: Json | null;
           vocab_built_at?: string | null;
           word_count?: number | null;
           year?: string | null;
