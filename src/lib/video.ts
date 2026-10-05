@@ -112,3 +112,52 @@ export function ndlaLicense(name: string | undefined): string | null {
   if (/Ingen Bearbeidelse/i.test(name)) parts.push("ND");
   return `CC ${parts.join("-")}`;
 }
+
+/**
+ * Pieces of a soundtrack to transcribe one by one, cut in pauses: `silences` are [start, end] of quiet stretches
+ * (ffmpeg silencedetect). A piece closes at the first pause once it is `target` seconds long, or at `max` seconds
+ * if nobody pauses (music). Its start and end are measured, not guessed, so each piece becomes a paragraph whose
+ * time is exact.
+ */
+export function chunksFromSilences(silences: [number, number][], seconds: number, opts = { target: 10, max: 28, minSpeech: 0.6 }): [number, number][] {
+  const speech: [number, number][] = [];
+  let at = 0;
+  for (const [s, e] of [...silences].sort((a, b) => a[0] - b[0])) {
+    if (s - at >= opts.minSpeech) speech.push([at, s]);
+    at = Math.max(at, e);
+  }
+  if (seconds - at >= opts.minSpeech) speech.push([at, seconds]);
+  const chunks: [number, number][] = [];
+  let cur: [number, number] | null = null;
+  for (const [s, e] of speech) {
+    // a stretch with no pause at all is cut into max-long pieces
+    for (let from = s; from < e; from += opts.max) {
+      const to = Math.min(e, from + opts.max);
+      if (cur && to - cur[0] > opts.max) {
+        chunks.push(cur);
+        cur = null;
+      }
+      cur = cur ? [cur[0], to] : [from, to];
+      if (cur[1] - cur[0] >= opts.target) {
+        chunks.push(cur);
+        cur = null;
+      }
+    }
+  }
+  if (cur) chunks.push(cur);
+  return chunks;
+}
+
+/** ffmpeg silencedetect output → [start, end] of each silence. */
+export function parseSilences(log: string): [number, number][] {
+  const out: [number, number][] = [];
+  let start: number | null = null;
+  for (const m of log.matchAll(/silence_(start|end): (-?[\d.]+)/g)) {
+    if (m[1] === "start") start = Math.max(0, Number(m[2]));
+    else if (start != null) {
+      out.push([start, Number(m[2])]);
+      start = null;
+    }
+  }
+  return out;
+}

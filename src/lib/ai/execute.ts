@@ -35,6 +35,7 @@ export interface ExecuteOptions<T> {
   temperature?: number;
   /** Fast path: turn off "thinking" where a provider allows it (short structured tasks). */
   lowLatency?: boolean;
+  timeoutMs?: number;
   onAttempt?: (log: AttemptLog) => void | Promise<void>;
 }
 
@@ -84,6 +85,7 @@ export async function execute<T = string>(opts: ExecuteOptions<T>): Promise<Exec
           temperature: opts.temperature,
           json: !!opts.schema,
           lowLatency: opts.lowLatency,
+          timeoutMs: opts.timeoutMs,
         });
         log.latencyMs = Date.now() - started;
         log.inputTokens = res.inputTokens;

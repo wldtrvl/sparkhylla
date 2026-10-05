@@ -8,9 +8,9 @@ import { ProviderError, type CompletionRequest, type CompletionResult, type Prov
 
 const TIMEOUT_MS = 60_000;
 
-async function postJson(url: string, headers: Record<string, string>, body: unknown, signal?: AbortSignal) {
+async function postJson(url: string, headers: Record<string, string>, body: unknown, signal?: AbortSignal, timeoutMs = TIMEOUT_MS) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
   signal?.addEventListener("abort", () => ctl.abort());
   try {
     const res = await fetch(url, {
@@ -33,10 +33,16 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
   }
 }
 
+/** Audio input is Gemini-only here; other providers refuse it (not retryable) so execute() moves on. */
+function refuseMedia(req: CompletionRequest, provider: string) {
+  if (req.messages.some((m) => m.media?.length)) throw new ProviderError(`${provider}: audio input is not supported here`, undefined, false);
+}
+
 export const anthropic: ProviderAdapter = {
   name: "anthropic",
   available: () => !!serverEnv.anthropicKey(),
   async complete(req: CompletionRequest): Promise<CompletionResult> {
+    refuseMedia(req, "anthropic");
     const data = await postJson(
       "https://api.anthropic.com/v1/messages",
       { "x-api-key": serverEnv.anthropicKey(), "anthropic-version": "2023-06-01" },
@@ -74,18 +80,18 @@ export function geminiThinking(model: string): Record<string, unknown> | undefin
   return undefined;
 }
 
-async function geminiGenerate(model: string, body: Record<string, unknown>, signal?: AbortSignal) {
+async function geminiGenerate(model: string, body: Record<string, unknown>, signal?: AbortSignal, timeoutMs?: number) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   const headers = { "x-goog-api-key": serverEnv.googleKey() };
   try {
-    return await postJson(url, headers, body, signal);
+    return await postJson(url, headers, body, signal, timeoutMs);
   } catch (e) {
     // If a model rejects the thinking setting, retry once without it rather than failing the task.
     const gc = body.generationConfig as Record<string, unknown> | undefined;
     if (e instanceof ProviderError && e.status === 400 && gc?.thinkingConfig && /thinking/i.test(e.message)) {
       const { thinkingConfig: _drop, ...rest } = gc;
       void _drop;
-      return postJson(url, headers, { ...body, generationConfig: rest }, signal);
+      return postJson(url, headers, { ...body, generationConfig: rest }, signal, timeoutMs);
     }
     throw e;
   }
@@ -100,7 +106,10 @@ export const google: ProviderAdapter = {
       req.model,
       {
         systemInstruction: req.system ? { parts: [{ text: req.system }] } : undefined,
-        contents: req.messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+        contents: req.messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [...(m.media ?? []).map((x) => ({ inline_data: { mime_type: x.mimeType, data: x.data } })), { text: m.content }],
+        })),
         generationConfig: {
           // Gemini counts thinking tokens against maxOutputTokens; give thinking models headroom
           // so the visible answer isn't cut off. Only tokens actually used are billed.
@@ -113,6 +122,7 @@ export const google: ProviderAdapter = {
         },
       },
       req.signal,
+      req.timeoutMs,
     );
     const cand = data.candidates?.[0];
     const text = (cand?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
@@ -126,6 +136,7 @@ export const openai: ProviderAdapter = {
   name: "openai",
   available: () => !!serverEnv.openaiKey(),
   async complete(req: CompletionRequest): Promise<CompletionResult> {
+    refuseMedia(req, "openai");
     const data = await postJson(
       "https://api.openai.com/v1/chat/completions",
       { authorization: `Bearer ${serverEnv.openaiKey()}` },

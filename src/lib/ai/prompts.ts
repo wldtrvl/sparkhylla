@@ -163,6 +163,27 @@ export function wordLinkPrompt(p: { lang: Lang; roots: { lemma: string; display:
   };
 }
 
+// ---------- video transcript (offline import of public-domain videos) ----------
+export const VideoTranscriptSchema = z.object({ text: z.string() });
+
+/**
+ * One short piece of a public-domain video's soundtrack (cut at pauses, so its time is measured, not asked)
+ * → exactly what is said in it.
+ */
+export function videoTranscribePrompt(p: { lang: Lang; audio: { mimeType: string; data: string }; title: string }): PromptSpec {
+  return {
+    id: "video_transcribe",
+    version: 2,
+    system:
+      `You transcribe a short clip from the soundtrack of a ${langName(p.lang)} learning video, for a learner who reads along while it plays. ` +
+      `Write down exactly what is said, word for word, with normal punctuation and capitalisation: do not summarise, shorten, correct, translate or add anything. ` +
+      `The clip may begin or end in the middle of a sentence: write only the words you hear. Leave out music, sound effects and descriptions of sounds. ` +
+      `If nobody speaks or sings words, the text is "".\n` +
+      `Reply with ONLY a JSON object {"text": "…"}.`,
+    messages: [{ role: "user", content: `A clip from the video «${p.title}». Transcribe what is said.`, media: [p.audio] }],
+  };
+}
+
 // ---------- conversation ----------
 export interface ScenarioCtx {
   persona: string;

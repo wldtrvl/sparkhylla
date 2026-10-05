@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeParagraph, asVideo, clock, cuesToParagraphs, ndlaLicense, parseVtt } from "@/lib/video";
+import { activeParagraph, asVideo, chunksFromSilences, clock, cuesToParagraphs, ndlaLicense, parseSilences, parseVtt } from "@/lib/video";
 
 const VTT = `﻿WEBVTT
 
@@ -74,5 +74,16 @@ describe("video transcripts", () => {
     expect(asVideo({ provider: "brightcove", account: "1", player: "p", id: "2", paras: [[0, 1]] })?.provider).toBe("brightcove");
     expect(asVideo({ provider: "mp4", src: "http://insecure/x.mp4" })).toBeNull();
     expect(asVideo(null)).toBeNull();
+  });
+  it("cuts a soundtrack into pieces at pauses, with measured times", () => {
+    const log = "[silencedetect] silence_start: 0\n[silencedetect] silence_end: 2.5 | silence_duration: 2.5\n[silencedetect] silence_start: 9.1\n[silencedetect] silence_end: 9.6\n[silencedetect] silence_start: 14.2\n[silencedetect] silence_end: 15\n";
+    const silences = parseSilences(log);
+    expect(silences).toEqual([[0, 2.5], [9.1, 9.6], [14.2, 15]]);
+    // speech 2.5–9.1, 9.6–14.2, 15–60: the first piece closes at the first pause after 10 s
+    const chunks = chunksFromSilences(silences, 60, { target: 10, max: 28, minSpeech: 0.6 });
+    expect(chunks[0]).toEqual([2.5, 14.2]);
+    // 45 s of music with no pause is cut into pieces of at most 28 s
+    expect(chunks.slice(1).every(([a, b]) => b - a <= 28)).toBe(true);
+    expect(chunks.at(-1)?.[1]).toBe(60);
   });
 });

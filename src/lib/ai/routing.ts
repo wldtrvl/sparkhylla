@@ -58,6 +58,8 @@ export const DEFAULT_ROUTES: Record<Task, Route[]> = {
     { provider: "anthropic", model: HAIKU, weight: 1 },
     { provider: "google", model: FLASH, weight: 0 },
   ],
+  // audio input: Gemini only (other providers refuse audio, see providers.ts)
+  video_transcribe: [{ provider: "google", model: FLASH, weight: 1 }],
   judge: [{ provider: "anthropic", model: SONNET, weight: 1 }],
 };
 

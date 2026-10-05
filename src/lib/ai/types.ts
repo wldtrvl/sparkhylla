@@ -12,11 +12,14 @@ export type Task =
   | "word_lemma" // «Карта слов» build: frequency-list forms → dictionary word + part of speech
   | "word_tag" // «Карта слов» build: theme, translation, other ways to say it
   | "word_link" // «Карта слов» build: which basic word a harder word branches from
+  | "video_transcribe" // public-domain video soundtrack → verbatim transcript with times (offline import)
   | "judge"; // offline evaluation of other models' outputs
 
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** audio sent with the message (base64); only Gemini accepts it, other providers refuse so the next route is tried */
+  media?: { mimeType: string; data: string }[];
 }
 
 export interface CompletionRequest {
@@ -29,6 +32,8 @@ export interface CompletionRequest {
   json?: boolean;
   /** Disable extended "thinking" where the provider supports it (faster, cheaper short tasks). */
   lowLatency?: boolean;
+  /** longer than the default for slow requests, e.g. transcribing several minutes of audio */
+  timeoutMs?: number;
   signal?: AbortSignal;
 }
 

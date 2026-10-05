@@ -19,6 +19,7 @@ npm run import:gutenberg -- <id> <lang> "<title>" "<author>" <year> <kind> "<not
 npm run import:text -- <file.txt> <lang> "<title>" "<author>" "<year>" "<source url>" "<license>" <kind>
 npm run vocab:build # (re)build text_vocab for in-app books; needed after editing a body by hand
 npm run import:ndla -- [--topics=helse,mat] [--per=20] [--save]   # Norwegian videos from NDLA: CC-licensed, with bokmål subtitles (never «Opphavsrett»)
+npm run import:voa-video -- [--series=6324] [--per=30] [--save]   # English VOA videos (public domain): the soundtrack is cut at pauses (ffmpeg) and each piece transcribed by Gemini, so paragraph times are measured
 npm run wordmap:build -- <no|en> [--step=lemma|tag|link] [--limit=N]   # «Карта слов»: frequency list up to B2 → word_map (AI, resumable, ~$2–3 per language)
 npm run updates:add -- <feature|content|fix> "<title>" "<text>" [/link]   # post to «Что нового» after a user-visible change ships
 ```
