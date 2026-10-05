@@ -11,7 +11,7 @@ import { epubSections } from "@/lib/import/file";
 import { publicDomainInNorway } from "@/lib/import/sources";
 import { bandSize, coverage, frequencyBand } from "@/lib/learning/coverage";
 import freqNo from "@/data/freq-no.json";
-import { insertText } from "./lib";
+import { insertText, newTexts, plural } from "./lib";
 
 const FREQ_NO = freqNo as string[];
 
@@ -85,6 +85,7 @@ async function main() {
   const save = process.argv.includes("--save");
   const now = new Date();
   const band = { band: frequencyBand("no", "B1"), own: new Set<string>() };
+  const added = newTexts();
   let count = 0;
   for (const b of BOOKS) {
     if (!publicDomainInNorway(b.died, now)) {
@@ -128,9 +129,11 @@ async function main() {
         est_level: b.level,
       });
       if (r.status === "kept") console.log("    already in the library: kept as is");
+      added.add(r.status, book.meta.creator);
     }
     await new Promise((r) => setTimeout(r, 500));
   }
+  await added.announce({ title: (n) => `${n} ${plural(n, ["новый норвежский текст", "новых норвежских текста", "новых норвежских текстов"])}`, author: (a) => a });
   console.log(`${count} texts ${save ? "processed" : "would be imported (dry run; add --save)"}`);
 }
 

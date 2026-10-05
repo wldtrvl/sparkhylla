@@ -60,6 +60,11 @@ export async function POST(req: Request) {
     console.error("import: vocabulary failed", e);
     return NextResponse.json({ error: "Текст сохранён, но словарь книги не построился. Запустите npm run vocab:build." }, { status: 500 });
   }
+  // a new book shows up in «Что нового» (a replaced one does not); before migration 0011 the insert just fails
+  if (!existing) {
+    const { error } = await s.supabase.from("app_updates").insert({ kind: "content", title: `Новая книга: «${b.title}»`, body: b.authorNote || b.author, link: `/read/${saved.data.id}` });
+    if (error) console.error("import: «Что нового» entry failed", error.message);
+  }
   logEvent(s, "import.save", { textId: saved.data.id, source: b.source, words: row.word_count, rights: b.rights, confirmed: b.confirmed, replaced: !!existing });
   return NextResponse.json({ id: saved.data.id, replaced: !!existing });
 }

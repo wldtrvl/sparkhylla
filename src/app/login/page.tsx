@@ -19,7 +19,8 @@ function sendLink(email: string) {
   const implicit = createPlainClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
     auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
-  return implicit.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/login` } });
+  // existing accounts only: sign-ups are closed (migration 0012 also blocks them in the database)
+  return implicit.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/login`, shouldCreateUser: false } });
 }
 
 function LoginForm() {
@@ -63,7 +64,9 @@ function LoginForm() {
     setError("");
     const { error } = await sendLink(email.trim());
     if (error) {
-      setError(`Не получилось отправить письмо: ${error.message}`);
+      const closed = /signups? not allowed|otp_disabled|sign-ups are closed/i.test(`${error.code ?? ""} ${error.message}`);
+      track("auth.link_failed", { closed });
+      setError(closed ? "Этот адрес здесь не зарегистрирован. Приложение семейное: войти можно только с адресом, для которого уже есть вход." : `Не получилось отправить письмо: ${error.message}`);
       setState("error");
     } else setState("sent");
   }

@@ -12,7 +12,7 @@ const Body = z.object({
   ui_lang: z.enum(["ru", "uk"]).optional(),
   display_name: z.string().max(60).optional(),
   levels: z.object({ no: Skills, en: Skills }).optional(),
-  settings: z.object({ tts_rate: z.number().min(0.6).max(1.2).optional() }).optional(),
+  settings: z.object({ tts_rate: z.number().min(0.6).max(1.2).optional(), updates_seen_at: z.string().datetime({ offset: true }).optional() }).optional(),
 });
 
 export async function PATCH(req: Request) {

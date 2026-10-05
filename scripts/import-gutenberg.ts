@@ -7,7 +7,7 @@
  * Note: Gutenberg marks most books "public domain in the USA". Check the author's death year
  * for Norway/EU (life + 70 years) before importing.
  */
-import { cleanBody, insertText } from "./lib";
+import { cleanBody, insertText, newTexts } from "./lib";
 
 async function main() {
   const [id, lang, title, author, year, kind, note] = process.argv.slice(2);
@@ -36,6 +36,9 @@ async function main() {
     license: "public domain (Project Gutenberg)",
   });
   console.log(`${status === "kept" ? "Already in the library (use --update to replace)" : "Imported"}: "${title}" (${body.length} chars) → texts.id = ${textId}`);
+  const added = newTexts();
+  added.add(status, author);
+  await added.announce({ title: () => `Новая книга: «${title}»`, author: (a) => a, link: `/read/${textId}` });
   console.log("Tip: open the text once and trim front matter (title page, table of contents) in Supabase if needed.");
 }
 

@@ -30,6 +30,8 @@ beforeAll(async () => {
   for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql")).sort()) {
     await db.exec(readFileSync(join(MIGRATIONS, f), "utf8"));
   }
+  // sign-ups are closed since 0012: the test learner goes through the allowlist
+  await db.exec(`insert into signup_allowlist (email) values ('Learner@example.com')`);
   await db.exec(`insert into auth.users (id, email) values ('${USER}', 'learner@example.com')`);
 }, 30_000);
 
@@ -101,6 +103,17 @@ describe("migrations and SQL functions", () => {
     const { rows } = await db.query<{ id: string }>(`insert into texts (lang, title, author, kind, body, audio_url) values ('en', 'N', 'VOA', 'news', 'Text.', 'https://x/a.mp3') returning id`);
     expect(rows).toHaveLength(1);
     await expect(db.query(`insert into texts (lang, title, author, kind, body) values ('en', 'N2', 'VOA', 'podcast', 'Text.')`)).rejects.toThrow(/texts_kind_check/);
+  });
+
+  it("lists «Что нового» entries newest first and checks their kind (0011)", async () => {
+    const { rows } = await db.query<{ title: string }>(`select title from app_updates order by published_at desc limit 1`);
+    expect(rows[0].title).toBe("«Что нового»");
+    await expect(db.query(`insert into app_updates (kind, title) values ('promo', 'x')`)).rejects.toThrow(/app_updates_kind_check/);
+  });
+
+  it("blocks new accounts unless the email is on the allowlist (0012)", async () => {
+    await expect(db.query(`insert into auth.users (id, email) values (gen_random_uuid(), 'stranger@example.com')`)).rejects.toThrow(/Sign-ups are closed/);
+    expect((await db.query(`select 1 from profiles where user_id = $1`, [USER])).rows).toHaveLength(1); // the allowed one got a profile
   });
 
   it("daily_activity counts only events since the date, by Oslo day", async () => {

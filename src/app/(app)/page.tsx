@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { UpdateBanner } from "@/components/UpdatesSeen";
 import { GRAMMAR } from "@/lib/learning/grammar";
 import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
 import { loadPath } from "@/lib/path-data";
 import { logEvent, requireSession, type DailyActivity } from "@/lib/session";
 import { requestClock } from "@/lib/time";
 import { htmlLang } from "@/lib/text-format";
+import { unseenUpdates } from "@/lib/updates";
 
 const WEEKDAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
@@ -21,7 +23,7 @@ export default async function DeskPage() {
   const nowIso = clock.iso;
   const since = clock.daysAgo(6).slice(0, 10);
 
-  const [quotes, due, pathData, scenarios, convs, fb, activity] = await Promise.all([
+  const [quotes, due, pathData, scenarios, convs, fb, activity, updates] = await Promise.all([
     s.supabase.from("quotes").select("id,text,text_lang,translation_ru,translation_uk,author,author_note,origin,status,source").eq("active", true),
     s.supabase.from("words").select("term", { count: "exact" }).eq("user_id", s.user.id).eq("lang", lang).eq("status", "learning").lte("due", nowIso).limit(6),
     loadPath(s, lang), // the path also loads the library
@@ -29,6 +31,7 @@ export default async function DeskPage() {
     s.supabase.from("conversations").select("scenario_id,started_at").eq("user_id", s.user.id).eq("lang", lang).order("started_at", { ascending: false }).limit(50),
     s.supabase.from("feedback_items").select("rule_key").eq("user_id", s.user.id).eq("lang", lang).gte("created_at", clock.daysAgo(14)),
     s.supabase.rpc("daily_activity", { p_user: s.user.id, p_since: since }),
+    unseenUpdates(),
   ]);
 
   const { path, library } = pathData;
@@ -47,7 +50,7 @@ export default async function DeskPage() {
   const days = new Set(((activity.data ?? []) as DailyActivity[]).filter((d) => Number(d.minutes) >= 1).map((d) => String(d.day)));
   const week = clock.dayKeys(7);
 
-  logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id });
+  logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id, newUpdates: updates.count });
 
   const date = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Oslo" }).format(new Date());
   const name = s.profile.display_name;
@@ -72,6 +75,8 @@ export default async function DeskPage() {
           ))}
         </div>
       </div>
+
+      {updates.latest && <UpdateBanner count={updates.count} title={updates.latest.title} />}
 
       {quote && (
         <figure className="quote">

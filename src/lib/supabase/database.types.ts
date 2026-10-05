@@ -38,6 +38,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      app_updates: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: number;
+          kind: string;
+          link: string | null;
+          published_at: string;
+          title: string;
+        };
+        Insert: {
+          body?: string;
+          created_at?: string;
+          id?: number;
+          kind?: string;
+          link?: string | null;
+          published_at?: string;
+          title: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: number;
+          kind?: string;
+          link?: string | null;
+          published_at?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
       coach_links: {
         Row: {
           coach_id: string;
@@ -543,6 +573,21 @@ export type Database = {
           setting?: string;
           sort?: number;
           title_ru?: string;
+        };
+        Relationships: [];
+      };
+      signup_allowlist: {
+        Row: {
+          created_at: string;
+          email: string;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
         };
         Relationships: [];
       };

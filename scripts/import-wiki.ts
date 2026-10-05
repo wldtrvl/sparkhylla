@@ -8,7 +8,7 @@
  */
 import { draftFromUrl } from "@/lib/import/sources";
 import { HEADING_PREFIX } from "@/lib/text-format";
-import { insertText } from "./lib";
+import { insertText, newTexts, plural } from "./lib";
 
 const TOPICS = [
   "17. mai", "Brunost", "Fårikål", "Lutefisk", "Vaffel", "Kanelbolle", "Matpakke", "Friluftsliv", "Allemannsretten", "Dugnad",
@@ -37,6 +37,7 @@ function excerpt(body: string): string {
 async function main() {
   const save = process.argv.includes("--save");
   const now = new Date();
+  const added = newTexts();
   let count = 0;
   for (const topic of TOPICS) {
     const url = `https://no.wikipedia.org/wiki/${encodeURIComponent(topic.replace(/ /g, "_"))}`;
@@ -49,8 +50,8 @@ async function main() {
       } else {
         count++;
         console.log(`${save ? "save" : "would save"} | ${d.title} | ${n} words`);
-        if (save)
-          await insertText({
+        if (save) {
+          const r = await insertText({
             lang: "no",
             title: d.title,
             author: d.author,
@@ -62,12 +63,15 @@ async function main() {
             license: d.license,
             est_level: "B1",
           });
+          added.add(r.status, d.title);
+        }
       }
     } catch (e) {
       console.log(`  skip ${topic}: ${e instanceof Error ? e.message : e}`);
     }
     await new Promise((r) => setTimeout(r, process.env.IMPORT_CONTACT ? 800 : 7000));
   }
+  await added.announce({ title: (n) => `${n} ${plural(n, ["новая статья", "новые статьи", "новых статей"])} о Норвегии`, author: (a) => `«${a}»`, link: "/library?kind=article" });
   console.log(`${count} articles ${save ? "imported" : "would be imported (dry run; add --save)"}`);
 }
 

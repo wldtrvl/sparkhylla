@@ -5,7 +5,7 @@
  *   npm run import:text -- <file.txt> <lang> "<title>" "<author>" "<year>" "<source url>" "<license>" [kind] ["author note"]
  */
 import { readFile } from "node:fs/promises";
-import { cleanBody, insertText } from "./lib";
+import { cleanBody, insertText, newTexts } from "./lib";
 
 async function main() {
   const [file, lang, title, author, year, source, license, kind, note] = process.argv.slice(2);
@@ -16,6 +16,9 @@ async function main() {
   const body = cleanBody(await readFile(file, "utf8"));
   const { id, status } = await insertText({ lang: lang === "no" ? "no" : "en", title, author, year, kind, author_note: note, body, source_url: source, license });
   console.log(`${status === "kept" ? "Already in the library (use --update to replace)" : "Imported"}: "${title}" → texts.id = ${id}`);
+  const added = newTexts();
+  added.add(status, author);
+  await added.announce({ title: () => `Новая книга: «${title}»`, author: (a) => a, link: `/read/${id}` });
 }
 
 main().catch((e) => {

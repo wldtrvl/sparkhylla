@@ -9,7 +9,7 @@
  *   npm run import:voa -- --per=25    # articles per section (default 15)
  */
 import { parse } from "node-html-parser";
-import { admin, insertText } from "./lib";
+import { admin, insertText, newTexts, plural } from "./lib";
 
 const BASE = "https://learningenglish.voanews.com";
 const UA = "Sprakhylla/0.1 (personal language-learning app)";
@@ -82,6 +82,7 @@ async function storeAudio(mp3: string, key: string) {
 async function main() {
   const save = process.argv.includes("--save");
   const per = Number(process.argv.find((a) => a.startsWith("--per="))?.slice(6) ?? 15);
+  const added = newTexts();
   let total = 0;
   const done = new Set<string>(); // an article listed in two sections is imported once
   for (const sec of SECTIONS) {
@@ -108,7 +109,7 @@ async function main() {
         if (!save) continue;
         const key = link.match(/(\d+)\.html$/)?.[1] ?? String(Date.now());
         const audioUrl = await storeAudio(a.mp3, key);
-        const { id } = await insertText({
+        const { id, status } = await insertText({
           lang: "en",
           title: a.title,
           author: "VOA Learning English",
@@ -120,12 +121,14 @@ async function main() {
           license: "public domain (VOA Learning English, US government work)",
           est_level: sec.level,
         });
+        added.add(status, sec.name);
         // also fills the recording in for an article saved earlier without it
         const { error } = await admin().from("texts").update({ audio_url: audioUrl }).eq("id", id).is("audio_url", null);
         if (error) throw error;
       }
     }
   }
+  await added.announce({ title: (n) => `${n} ${plural(n, ["новая английская новость", "новые английские новости", "новых английских новостей"])} с голосом диктора`, author: (a) => a, link: "/library?kind=news" });
   console.log(`${total} articles ${save ? "imported" : "would be imported (dry run; add --save)"}`);
 }
 

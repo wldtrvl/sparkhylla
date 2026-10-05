@@ -11,7 +11,7 @@
  */
 import { draftFromUrl } from "@/lib/import/sources";
 import { isHeading, paragraphText } from "@/lib/text-format";
-import { insertText } from "./lib";
+import { insertText, newTexts, plural } from "./lib";
 
 type Kind = "novel" | "story" | "tale" | "fable" | "article" | "other";
 interface Book {
@@ -93,6 +93,7 @@ async function main() {
   const save = process.argv.includes("--save");
   const now = new Date();
   const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7).split(",").map(Number);
+  const added = newTexts();
   let count = 0;
   for (const b of BOOKS.filter((x) => !only || only.includes(x.id))) {
     const d = await draftFromUrl(`https://www.gutenberg.org/ebooks/${b.id}`, now);
@@ -108,8 +109,8 @@ async function main() {
     for (const it of items) {
       count++;
       console.log(`${save ? "save" : "would save"} #${b.id} ${b.kind} ${b.level} | ${it.title} | ${d.author} | ${words(it.body)} words${it.collection ? ` | from «${it.collection}»` : ""}`);
-      if (save)
-        await insertText({
+      if (save) {
+        const r = await insertText({
           lang: d.lang,
           title: it.title,
           author: d.author,
@@ -121,9 +122,12 @@ async function main() {
           license,
           est_level: b.level,
         });
+        added.add(r.status, d.author);
+      }
     }
     await new Promise((r) => setTimeout(r, 500)); // polite to gutenberg.org
   }
+  await added.announce({ title: (n) => `${n} ${plural(n, ["новый английский текст", "новых английских текста", "новых английских текстов"])}`, author: (a) => a });
   console.log(`${count} texts ${save ? "processed (new ones added, existing kept)" : "would be imported (dry run; add --save)"}`);
 }
 

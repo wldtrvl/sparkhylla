@@ -38,6 +38,11 @@ const ICONS: Record<string, React.ReactNode> = {
     </>
   ),
   coach: <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />,
+  updates: (
+    <>
+      <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8-4.3-4.1 5.9-.9z" />
+    </>
+  ),
   more: (
     <>
       <circle cx="5" cy="12" r="1.6" />
@@ -59,6 +64,14 @@ const Icon = ({ name }: { name: string }) => (
   </svg>
 );
 
+/** Number of «Что нового» entries she has not opened yet. */
+const NewBadge = ({ n }: { n: number }) =>
+  n > 0 ? (
+    <span className="nav-badge" aria-label={`новое: ${n}`}>
+      {n}
+    </span>
+  ) : null;
+
 /** Switch the active language (Norsk/English); shared by the sidebar and the phone top bar. */
 function useLangSwitch(activeLang: "no" | "en", where: "sidebar" | "mobile") {
   const router = useRouter();
@@ -74,7 +87,7 @@ function useLangSwitch(activeLang: "no" | "en", where: "sidebar" | "mobile") {
   return { pending, switchLang };
 }
 
-export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "en"; isCoach: boolean; levels: string }) {
+export function Sidebar({ activeLang, isCoach, levels, newUpdates }: { activeLang: "no" | "en"; isCoach: boolean; levels: string; newUpdates: number }) {
   const path = usePathname();
   const { pending, switchLang } = useLangSwitch(activeLang, "sidebar");
   // On a phone the bottom bar shows the four daily sections (short labels); the rest sit under «Ещё».
@@ -85,6 +98,7 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
     { href: "/words", label: "Мои слова", short: "Слова", icon: "words", primary: true },
     { href: "/talk", label: "Разговор", short: "Разговор", icon: "talk", primary: false },
     { href: "/grammar", label: "Грамматика", short: "Грамматика", icon: "grammar", primary: false },
+    { href: "/updates", label: "Что нового", short: "Что нового", icon: "updates", primary: false },
     ...(isCoach ? [{ href: "/coach", label: "Помощник", short: "Помощник", icon: "coach", primary: false }] : []),
   ];
   const more = [...items.filter((it) => !it.primary), { href: "/settings", label: "Настройки", short: "Настройки", icon: "settings", primary: false }];
@@ -112,6 +126,7 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
             <Icon name={it.icon} />
             <span className="lbl-long">{it.label}</span>
             <span className="lbl-short">{it.short}</span>
+            {it.href === "/updates" && <NewBadge n={newUpdates} />}
           </Link>
         ))}
         <button
@@ -127,6 +142,7 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
         >
           <Icon name="more" />
           <span>Ещё</span>
+          {newUpdates > 0 && <span className="nav-dot" aria-label="есть новое" />}
         </button>
       </nav>
       {moreOpen && (
@@ -137,6 +153,7 @@ export function Sidebar({ activeLang, isCoach, levels }: { activeLang: "no" | "e
               <Link key={it.href} href={it.href} aria-current={isActive(it.href) ? "page" : undefined} onClick={() => setMoreOpen(false)}>
                 <Icon name={it.icon} />
                 {it.label}
+                {it.href === "/updates" && <NewBadge n={newUpdates} />}
               </Link>
             ))}
           </div>

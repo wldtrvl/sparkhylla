@@ -57,3 +57,30 @@ export async function insertText(t: {
   await writeVocab(db, id, t.body, t.lang);
   return { id, status: existing ? "updated" : "created" };
 }
+
+/**
+ * «Что нового» for an import run: collects the texts it added and posts one entry at the end
+ * (nothing when the run only kept existing texts, or with --quiet).
+ */
+export function newTexts() {
+  const byAuthor = new Map<string, number>();
+  return {
+    add(status: "created" | "updated" | "kept", author: string) {
+      if (status === "created") byAuthor.set(author, (byAuthor.get(author) ?? 0) + 1);
+    },
+    async announce(o: { title: (n: number) => string; author: (name: string) => string; link?: string }) {
+      const n = [...byAuthor.values()].reduce((a, b) => a + b, 0);
+      if (!n || process.argv.includes("--quiet")) return;
+      const authors = [...byAuthor.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => o.author(name));
+      const body = `${authors.slice(0, 8).join(", ")}${authors.length > 8 ? " и другие" : ""}.`;
+      const { error } = await admin().from("app_updates").insert({ kind: "content", title: o.title(n), body, link: o.link ?? "/library" });
+      console.log(error ? `«Что нового» not posted: ${error.message}` : `«Что нового»: ${o.title(n)}`);
+    },
+  };
+}
+
+/** Russian plural: plural(5, ["текст", "текста", "текстов"]) → "текстов". */
+export function plural(n: number, forms: [string, string, string]) {
+  const m10 = n % 10, m100 = n % 100;
+  return forms[m10 === 1 && m100 !== 11 ? 0 : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 1 : 2];
+}
