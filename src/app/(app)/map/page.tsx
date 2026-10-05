@@ -74,7 +74,7 @@ export default async function WordMapPage({ searchParams }: PageProps<"/map">) {
       words: [root, ...branch].map(chip),
       root: root.lemma,
     }));
-    if (loose.length) groups.push({ key: "loose", title: "Без ветки", subtitle: "слова темы, у которых нет базового слова", words: loose.map(chip) });
+    if (loose.length) groups.push({ key: "loose", title: "Другие слова темы", subtitle: "без ветки", words: loose.map(chip) });
   }
 
   const href = (o: Record<string, string | null>) => {

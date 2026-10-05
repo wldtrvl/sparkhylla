@@ -156,10 +156,10 @@ export function trees<T extends Pick<MapWord, "lemma" | "root" | "rank">>(words:
     if (w.root && w.root !== w.lemma && roots.has(w.root)) {
       if (!groups.has(w.root)) groups.set(w.root, []);
       groups.get(w.root)!.push(w);
-    } else if (!roots.has(w.lemma)) loose.push(w);
+    }
   }
-  // a root shows up even when no word of the current filter branches from it, if it matches the filter itself
-  for (const w of words) if (roots.has(w.lemma) && !groups.has(w.lemma)) groups.set(w.lemma, []);
+  // a basic word with nothing under it here is listed with the other words, not as a one-word tree
+  for (const w of words) if (!(w.root && w.root !== w.lemma && roots.has(w.root)) && !groups.has(w.lemma)) loose.push(w);
   const out = [...groups.entries()].map(([root, branch]) => ({ root: roots.get(root)!, branch: branch.sort((a, b) => a.rank - b.rank) }));
   out.sort((a, b) => a.root.rank - b.root.rank);
   return { trees: out, loose: loose.sort((a, b) => a.rank - b.rank) };

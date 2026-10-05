@@ -58,6 +58,11 @@ describe("word map", () => {
     expect(t.trees).toHaveLength(1);
     expect(t.trees[0].branch.map((w) => w.lemma)).toEqual(["utføre", "foreta"]);
     expect(t.loose.map((w) => w.lemma)).toEqual(["hm"]);
+    // a basic word with no branch is not a tree of its own
+    const ut = word("ut", 46);
+    const t2 = trees([ut, ...ws], new Map([["gjøre", gjore], ["ut", ut]]));
+    expect(t2.trees.map((x) => x.root.lemma)).toEqual(["gjøre"]);
+    expect(t2.loose.map((w) => w.lemma)).toEqual(["ut", "hm"]);
   });
 });
 
