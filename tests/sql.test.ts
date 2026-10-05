@@ -116,6 +116,12 @@ describe("migrations and SQL functions", () => {
     expect((await db.query(`select 1 from profiles where user_id = $1`, [USER])).rows).toHaveLength(1); // the allowed one got a profile
   });
 
+  it("stores «Карта слов» words with a level and keeps one row per lemma (0013)", async () => {
+    await db.query(`insert into word_map (lang, lemma, display, pos, forms, rank, level) values ('no', 'gå', 'å gå', 'verb', '{går,gikk}', 50, 'A1')`);
+    await expect(db.query(`insert into word_map (lang, lemma, display, rank, level) values ('no', 'gå', 'å gå', 51, 'A1')`)).rejects.toThrow(/duplicate key/);
+    await expect(db.query(`insert into word_map (lang, lemma, display, rank, level) values ('no', 'ta', 'å ta', 60, 'X1')`)).rejects.toThrow(/word_map_level_check/);
+  });
+
   it("daily_activity counts only events since the date, by Oslo day", async () => {
     await db.query(
       `insert into events (user_id, type, created_at) values

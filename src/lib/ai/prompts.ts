@@ -75,6 +75,94 @@ export function translatePrompt(p: { lang: Lang; uiLang: UiLang; sentences: stri
   };
 }
 
+// ---------- «Карта слов» (built offline: scripts/build-wordmap.ts) ----------
+const POS_LIST = "verb, noun, adj, adv, pron, prep, conj, num, interj, other";
+
+/** Frequency-list word forms → dictionary words. One item per form, in order. */
+export const wordLemmaSchema = (n: number) =>
+  z.object({
+    items: z
+      .array(
+        z.object({
+          form: z.string(),
+          lemma: z.string(),
+          display: z.string(),
+          pos: z.string(),
+          skip: z.boolean(),
+        }),
+      )
+      .length(n),
+  });
+
+export function wordLemmaPrompt(p: { lang: Lang; forms: string[] }): PromptSpec {
+  const no = p.lang === "no";
+  return {
+    id: "word_lemma",
+    version: 1,
+    system:
+      `You are a careful ${langName(p.lang)} lexicographer. You get word forms from a frequency list of spoken ${langName(p.lang)} (film subtitles), most frequent first. ` +
+      `For EACH form give its dictionary word in today's ${no ? "bokmål" : "standard English"}:\n` +
+      `- "lemma": the base form in lower case, without article or infinitive marker (${no ? `"går", "gikk" → "gå"; "bilen" → "bil"; "pene" → "pen"` : `"went" → "go"; "children" → "child"; "better" → "good"`}).\n` +
+      `- "display": the dictionary form a learner should see: ${no ? `verbs with "å" ("å gå"), nouns with their indefinite article ("en bil", "ei jente", "et hus"), other words as the lemma` : `the lemma itself ("go", "child", "good")`}.\n` +
+      `- "pos": the most common part of speech of this form, one of: ${POS_LIST}.\n` +
+      `- "skip": true for things that are not words to learn: personal names and place names that are not ordinary words, fragments of contractions ("'s", "t", "ll"), letters, filler sounds ("hmm", "ah", "eh"), and crude slang; false otherwise.\n` +
+      `Reply with ONLY a JSON object {"items": [{"form", "lemma", "display", "pos", "skip"}]} with exactly ${p.forms.length} items, one per form, in the same order.`,
+    messages: [{ role: "user", content: JSON.stringify(p.forms) }],
+  };
+}
+
+/** Theme, translation and other ways to say it, for dictionary words. One item per word, in order. */
+export const wordTagSchema = (n: number, themes: readonly string[]) =>
+  z.object({
+    items: z
+      .array(
+        z.object({
+          lemma: z.string(),
+          theme: z.enum(themes as [string, ...string[]]),
+          translation: z.string(),
+          analogues: z
+            .array(z.object({ text: z.string(), level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]), note: z.string() }))
+            .max(4),
+        }),
+      )
+      .length(n),
+  });
+
+export function wordTagPrompt(p: { lang: Lang; uiLang: UiLang; words: { lemma: string; display: string; pos: string; level: string }[]; themes: Record<string, string> }): PromptSpec {
+  return {
+    id: "word_tag",
+    version: 1,
+    system:
+      `You build a learner's map of the ${langName(p.lang)} vocabulary. ${LEARNER(p.lang, p.uiLang, "B1")}\n` +
+      `For EACH word (with its part of speech and CEFR level) give:\n` +
+      `- "theme": the one theme it belongs to most, by key: ${Object.entries(p.themes).map(([k, v]) => `${k} (${v})`).join(", ")}. Pronouns, articles, prepositions, conjunctions, auxiliary and modal verbs and other function words are "grammar"; general verbs of doing and moving (do, take, put, go, come, bring) are "actions".\n` +
+      `- "translation": the main ${uiName(p.uiLang)} translation, 1–4 words (two meanings separated by ", " if both are common).\n` +
+      `- "analogues": 2–4 other ways to say the same thing in ${langName(p.lang)} — synonyms or set phrases a native speaker would really use — as {"text", "level" (CEFR), "note"}: "note" says in ${uiName(p.uiLang)}, max 10 words, how it differs (simpler, more formal, stronger, colloquial, more precise…). ` +
+      `For an A1–A2 word include at least one more precise or more advanced way; for a B1–B2 word include at least one simpler, more common way. For function words with no real alternative, give [] .\n` +
+      `Reply with ONLY a JSON object {"items": [{"lemma", "theme", "translation", "analogues"}]} with exactly ${p.words.length} items, in the same order.`,
+    messages: [{ role: "user", content: JSON.stringify(p.words) }],
+  };
+}
+
+/** For each harder word: the basic word (from the given list) it branches from, or null. */
+export const wordLinkSchema = (n: number) => z.object({ items: z.array(z.object({ lemma: z.string(), root: z.string().nullable() })).length(n) });
+
+export function wordLinkPrompt(p: { lang: Lang; roots: { lemma: string; display: string; translation: string }[]; words: { lemma: string; display: string; translation: string }[] }): PromptSpec {
+  return {
+    id: "word_link",
+    version: 1,
+    system:
+      `You draw a tree of the ${langName(p.lang)} vocabulary for a learner: basic words are the roots, and each harder word hangs under the basic word it is a more specific, stronger, more formal or more advanced way of saying, or is built from. ` +
+      (p.lang === "no"
+        ? `Examples: "gjennomføre" → "gjøre"; "gripe" → "ta"; "enorm" → "stor"; "spasere" → "gå"; "fortelle" → "si"; "arbeidsplass" → "arbeid".\n`
+        : `Examples: "accomplish" → "do"; "grab" → "take"; "huge" → "big"; "stroll" → "walk"; "explain" → "say"; "workplace" → "work".\n`) +
+      `Roots (lemma — display — translation): ${p.roots.map((r) => `${r.lemma} — ${r.display} — ${r.translation}`).join("; ")}.\n` +
+      `For EACH word give "root": the lemma of the one best root from this list, exactly as written there, or null when no root is a natural parent (do not force it). ` +
+      `Reply with ONLY a JSON object {"items": [{"lemma", "root"}]} with exactly ${p.words.length} items, in the same order.`,
+    messages: [{ role: "user", content: JSON.stringify(p.words) }],
+  };
+}
+
 // ---------- conversation ----------
 export interface ScenarioCtx {
   persona: string;

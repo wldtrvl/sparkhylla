@@ -20,7 +20,8 @@
     "import:wiki": "tsx --conditions=react-server --env-file=.env.local scripts/import-wiki.ts",
     "import:bokselskap": "tsx --conditions=react-server --env-file=.env.local scripts/import-bokselskap.ts",
     "updates:add": "tsx --conditions=react-server --env-file=.env.local scripts/add-update.ts",
-    "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts"
+    "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
+    "wordmap:build": "tsx --conditions=react-server --env-file=.env.local scripts/build-wordmap.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

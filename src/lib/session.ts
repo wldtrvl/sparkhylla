@@ -8,6 +8,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { insertLater } from "@/lib/log";
 import { getUser, type AuthUser } from "@/lib/supabase/server";
 import { frequencyBand, type KnownSets, type Lang } from "@/lib/learning/coverage";
+import { loadMap, ownWords } from "@/lib/wordmap-data";
 
 export interface Profile {
   user_id: string;
@@ -75,12 +76,23 @@ export async function wordState(s: Session, lang: Lang): Promise<{ known: KnownS
   return { known: { band: frequencyBand(lang, s.profile.levels[lang]?.reading ?? "B1"), own }, learning };
 }
 
-/** A learner's own words as coverage counts them (forms, lemmas without article, parts of phrases). RLS applies. */
+/**
+ * A learner's own words as coverage counts them (forms, lemmas without article, parts of phrases). RLS applies.
+ * A word marked on «Карта слов» brings all its forms (å gå → går, gikk, gått).
+ */
 export async function ownWordsFor(supabase: SupabaseClient<Database>, userId: string, lang: Lang): Promise<{ own: Set<string>; learning: string[] }> {
-  const { data } = await supabase.from("words").select("term,lemma,status").eq("user_id", userId).eq("lang", lang).limit(20000);
+  const data = await ownWords(supabase, userId, lang);
   const own = new Set<string>();
   const learning: string[] = [];
-  for (const w of data ?? []) {
+  if (data.some((w) => w.source === "map")) {
+    const map = await loadMap(supabase, lang);
+    for (const w of data) {
+      if (w.source !== "map" || w.status === "ignored") continue;
+      const mw = map.byForm.get(String(w.term).toLowerCase().replace(/^(å|en|ei|et|to|a|an|the)\s+/, ""));
+      mw?.forms.forEach((f) => own.add(f));
+    }
+  }
+  for (const w of data) {
     if (w.status === "learning") learning.push(String(w.term).toLowerCase());
     own.add(String(w.term).toLowerCase());
     if (w.lemma) own.add(String(w.lemma).toLowerCase().replace(/^(å|en|ei|et|to|a|an|the)\s+/, ""));

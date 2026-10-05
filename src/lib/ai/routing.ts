@@ -45,6 +45,19 @@ export const DEFAULT_ROUTES: Record<Task, Route[]> = {
     { provider: "anthropic", model: HAIKU, weight: 1 },
     { provider: "google", model: LITE, weight: 0 },
   ],
+  // «Карта слов» is built offline in batches (scripts/build-wordmap.ts)
+  word_lemma: [
+    { provider: "anthropic", model: HAIKU, weight: 1 },
+    { provider: "google", model: FLASH, weight: 0 },
+  ],
+  word_tag: [
+    { provider: "anthropic", model: HAIKU, weight: 1 },
+    { provider: "google", model: FLASH, weight: 0 },
+  ],
+  word_link: [
+    { provider: "anthropic", model: HAIKU, weight: 1 },
+    { provider: "google", model: FLASH, weight: 0 },
+  ],
   judge: [{ provider: "anthropic", model: SONNET, weight: 1 }],
 };
 

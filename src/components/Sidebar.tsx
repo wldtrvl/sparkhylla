@@ -38,6 +38,14 @@ const ICONS: Record<string, React.ReactNode> = {
     </>
   ),
   coach: <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />,
+  map: (
+    <>
+      <circle cx="6" cy="6" r="2.2" />
+      <circle cx="18" cy="6" r="2.2" />
+      <circle cx="12" cy="18" r="2.2" />
+      <path d="M7.6 7.6 10.6 16M16.4 7.6 13.4 16M8.2 6h7.6" />
+    </>
+  ),
   updates: (
     <>
       <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8-4.3-4.1 5.9-.9z" />
@@ -96,6 +104,7 @@ export function Sidebar({ activeLang, isCoach, levels, newUpdates }: { activeLan
     { href: "/path", label: "Мой путь", short: "Путь", icon: "path", primary: true },
     { href: "/library", label: "Библиотека", short: "Книги", icon: "library", primary: true },
     { href: "/words", label: "Мои слова", short: "Слова", icon: "words", primary: true },
+    { href: "/map", label: "Карта слов", short: "Карта слов", icon: "map", primary: false },
     { href: "/talk", label: "Разговор", short: "Разговор", icon: "talk", primary: false },
     { href: "/grammar", label: "Грамматика", short: "Грамматика", icon: "grammar", primary: false },
     { href: "/updates", label: "Что нового", short: "Что нового", icon: "updates", primary: false },

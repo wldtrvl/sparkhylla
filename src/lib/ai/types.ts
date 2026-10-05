@@ -9,6 +9,9 @@ export type Task =
   | "talk_feedback" // post-conversation feedback
   | "explain" // grammar explanation + exercise
   | "translate" // sentence-by-sentence translation of a page (reader, «Перевод рядом»)
+  | "word_lemma" // «Карта слов» build: frequency-list forms → dictionary word + part of speech
+  | "word_tag" // «Карта слов» build: theme, translation, other ways to say it
+  | "word_link" // «Карта слов» build: which basic word a harder word branches from
   | "judge"; // offline evaluation of other models' outputs
 
 export interface ChatMessage {

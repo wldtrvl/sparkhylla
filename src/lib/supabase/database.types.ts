@@ -782,6 +782,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      word_map: {
+        Row: {
+          analogues: NonNullable<Json>;
+          display: string;
+          forms: string[];
+          lang: string;
+          lemma: string;
+          level: string;
+          linked: boolean;
+          pos: string;
+          rank: number;
+          root: string | null;
+          skip: boolean;
+          tag_version: number | null;
+          theme: string | null;
+          translation_ru: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          analogues?: NonNullable<Json>;
+          display: string;
+          forms?: string[];
+          lang: string;
+          lemma: string;
+          level: string;
+          linked?: boolean;
+          pos?: string;
+          rank: number;
+          root?: string | null;
+          skip?: boolean;
+          tag_version?: number | null;
+          theme?: string | null;
+          translation_ru?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          analogues?: NonNullable<Json>;
+          display?: string;
+          forms?: string[];
+          lang?: string;
+          lemma?: string;
+          level?: string;
+          linked?: boolean;
+          pos?: string;
+          rank?: number;
+          root?: string | null;
+          skip?: boolean;
+          tag_version?: number | null;
+          theme?: string | null;
+          translation_ru?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       words: {
         Row: {
           context: string | null;
