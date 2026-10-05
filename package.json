@@ -19,7 +19,8 @@
     "import:voa": "tsx --env-file=.env.local scripts/import-voa.ts",
     "import:wiki": "tsx --conditions=react-server --env-file=.env.local scripts/import-wiki.ts",
     "import:bokselskap": "tsx --conditions=react-server --env-file=.env.local scripts/import-bokselskap.ts",
-    "updates:add": "tsx --conditions=react-server --env-file=.env.local scripts/add-update.ts"
+    "updates:add": "tsx --conditions=react-server --env-file=.env.local scripts/add-update.ts",
+    "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -41,6 +42,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "postgres": "^3.4.9",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.3"
