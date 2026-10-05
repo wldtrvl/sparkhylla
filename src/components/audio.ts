@@ -1,6 +1,10 @@
 "use client";
 /** Playback (server TTS with browser-voice fallback) and microphone recording helpers. */
 import { useCallback, useRef, useState } from "react";
+import { pickVoice } from "@/lib/voice";
+
+// browsers load their voice list lazily: ask early so the first «Слушать» already has a good voice
+if (typeof window !== "undefined" && "speechSynthesis" in window) speechSynthesis.getVoices();
 
 let current: HTMLAudioElement | null = null;
 // Bumped by stopAudio(): a playback started earlier sees the change and ends quietly.
@@ -12,8 +16,7 @@ function browserSpeak(text: string, lang: "no" | "en", rate: number, onEnd?: () 
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang === "no" ? "nb-NO" : "en-US"; // American English: clearer for her than British
   u.rate = rate;
-  const voices = speechSynthesis.getVoices();
-  const v = lang === "no" ? voices.find((x) => /^(nb|no|nn)/i.test(x.lang)) : voices.find((x) => /^en-US/i.test(x.lang)) ?? voices.find((x) => /^en/i.test(x.lang));
+  const v = pickVoice(speechSynthesis.getVoices(), lang);
   if (v) u.voice = v;
   u.onend = () => onEnd?.();
   u.onerror = () => onEnd?.();
