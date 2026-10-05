@@ -27,7 +27,7 @@ async function main() {
     );
     process.exit(1);
   }
-  const sql = postgres(url, { ssl: /sslmode=disable/.test(url) ? false : "require", max: 1, onnotice: () => {} });
+  const sql = postgres({ ...connection(url), ssl: /sslmode=disable/.test(url) ? false : "require", max: 1, onnotice: () => {} });
   try {
     await sql`create schema if not exists app_private`;
     await sql`create table if not exists app_private.migrations (name text primary key, sha256 text, applied_at timestamptz not null default now())`;
@@ -64,6 +64,37 @@ async function main() {
   } finally {
     await sql.end();
   }
+}
+
+/**
+ * Split postgresql://user:password@host:port/db by hand: Supabase passwords may hold # / ? @ unencoded,
+ * which a URL parser would take as fragment, path or host. The password is everything up to the last @.
+ */
+function connection(url: string) {
+  const rest = url.replace(/^postgres(ql)?:\/\//, "");
+  const at = rest.lastIndexOf("@");
+  if (at < 0) throw new Error("SUPABASE_DB_URL has no user:password@host part. If the password contains #, put the whole value in double quotes in .env.local.");
+  const cred = rest.slice(0, at);
+  const after = rest.slice(at + 1);
+  const slash = after.indexOf("/");
+  const hostPort = slash < 0 ? after : after.slice(0, slash);
+  const dbAndQuery = slash < 0 ? "" : after.slice(slash + 1);
+  const colon = cred.indexOf(":");
+  const [host, port] = hostPort.split(":");
+  const decode = (s: string) => {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s; // a raw % in the password
+    }
+  };
+  return {
+    username: decode(colon < 0 ? cred : cred.slice(0, colon)),
+    password: colon < 0 ? undefined : decode(cred.slice(colon + 1)),
+    host,
+    port: Number(port || 5432),
+    database: dbAndQuery.split("?")[0] || "postgres",
+  };
 }
 
 const hash = (f: string) => createHash("sha256").update(readFileSync(join(DIR, f))).digest("hex");
