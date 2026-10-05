@@ -1,7 +1,8 @@
 "use client";
 /** Playback (server TTS with browser-voice fallback) and microphone recording helpers. */
 import { useCallback, useRef, useState } from "react";
-import { pickVoice } from "@/lib/voice";
+import { pickVoice, speechChunks } from "@/lib/voice";
+import { track } from "./tracker";
 
 // browsers load their voice list lazily: ask early so the first «Слушать» already has a good voice
 if (typeof window !== "undefined" && "speechSynthesis" in window) speechSynthesis.getVoices();
@@ -13,14 +14,26 @@ let generation = 0;
 function browserSpeak(text: string, lang: "no" | "en", rate: number, onEnd?: () => void) {
   if (!("speechSynthesis" in window)) return onEnd?.();
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang === "no" ? "nb-NO" : "en-US"; // American English: clearer for her than British
-  u.rate = rate;
   const v = pickVoice(speechSynthesis.getVoices(), lang);
-  if (v) u.voice = v;
-  u.onend = () => onEnd?.();
-  u.onerror = () => onEnd?.();
-  speechSynthesis.speak(u);
+  // no voice for the language: the browser reads with its default (often English) voice; worth knowing
+  if (!v && speechSynthesis.getVoices().length) track("speech.no_voice", { lang });
+  const parts = speechChunks(text);
+  let ended = false;
+  const finish = () => {
+    if (ended) return;
+    ended = true;
+    onEnd?.();
+  };
+  if (!parts.length) return finish();
+  parts.forEach((part, i) => {
+    const u = new SpeechSynthesisUtterance(part);
+    u.lang = lang === "no" ? "nb-NO" : "en-US"; // American English: clearer for her than British
+    u.rate = rate;
+    if (v) u.voice = v;
+    u.onend = () => i === parts.length - 1 && finish();
+    u.onerror = finish;
+    speechSynthesis.speak(u);
+  });
 }
 
 export function stopAudio() {

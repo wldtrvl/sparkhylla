@@ -3,6 +3,8 @@
  * on macOS and iOS that is «Albert», and the list goes on with joke and robotic voices (Bad News, Bubbles,
  * Zarvox, Eloquence's Grandpa…). Skip those and prefer natural voices.
  */
+import { splitSentences } from "@/lib/text-format";
+
 const POOR =
   /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Eddy|Flo|Fred|Good News|Grandma|Grandpa|Jester|Junior|Kathy|Organ|Ralph|Reed|Rocko|Sandy|Shelley|Superstar|Trinoids|Whisper|Wobble|Zarvox)\b/i;
 const NATURAL = /(premium|enhanced|natural|neural)/i;
@@ -28,4 +30,27 @@ export function pickVoice<T extends VoiceLike>(voices: T[], lang: "no" | "en"): 
     if (s > bestScore) [best, bestScore] = [v, s];
   }
   return best;
+}
+
+/**
+ * Text split for the browser voice: one utterance per sentence, long sentences cut at commas. Chrome's online
+ * Google voices (the good ones on Windows) stop after about 15 seconds of one utterance.
+ */
+export function speechChunks(text: string, max = 200): string[] {
+  const out: string[] = [];
+  for (const s of splitSentences(text.replace(/\s+/g, " ").trim())) {
+    if (s.length <= max) {
+      out.push(s);
+      continue;
+    }
+    let cur = "";
+    for (const piece of s.split(/(?<=[,;:])\s+/)) {
+      if (cur && (cur + " " + piece).length > max) {
+        out.push(cur);
+        cur = piece;
+      } else cur = cur ? `${cur} ${piece}` : piece;
+    }
+    if (cur) out.push(cur);
+  }
+  return out.filter(Boolean);
 }
