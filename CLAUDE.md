@@ -2,7 +2,7 @@
 
 # Språkhylla: guide for Claude Code
 
-A home language library for one learner: a 51-year-old Ukrainian/Russian speaker in Norway, Norwegian B1→B2, English A1–A2. The UI is Russian. Her son is the coach and analyses the data. Read `README.md` for features, setup and costs.
+A home language library for two learners, a mother (51) and her daughter: Ukrainian/Russian speakers living in Norway, learning Norwegian (B1→B2) and English (A1–A2). Each has her own account and progress; levels live in her profile, not in code or prompts. The UI is Russian. The son is the coach of both (`coach_links`) and analyses the data. Read `README.md` for features, setup and costs.
 
 ## Commands
 

@@ -12,8 +12,9 @@ export type UiLang = "ru" | "uk";
 const langName = (l: Lang) => (l === "no" ? "Norwegian Bokmål" : "English");
 const uiName = (u: UiLang) => (u === "uk" ? "Ukrainian" : "Russian");
 
+// Two learners share this description (a mother and her daughter): same background, levels come from her profile
 const LEARNER = (lang: Lang, uiLang: UiLang, level: string) =>
-  `The learner is a 51-year-old woman, native speaker of Ukrainian and Russian, living in Norway. ` +
+  `The learner is an adult woman, native speaker of Ukrainian and Russian, living in Norway. ` +
   `She is learning ${langName(lang)} at CEFR level ${level}` +
   (lang === "en" ? ", and already speaks Norwegian at about B1 — Norwegian comparisons help her." : ".") +
   ` Explanations for her are written in ${uiName(uiLang)}.`;
@@ -37,7 +38,7 @@ export type Gloss = z.infer<typeof GlossSchema>;
 export function glossPrompt(p: { lang: Lang; uiLang: UiLang; level: string; term: string; sentence: string }): PromptSpec {
   return {
     id: "gloss",
-    version: 3,
+    version: 4,
     system:
       `You are a precise bilingual dictionary for a language learner. ${LEARNER(p.lang, p.uiLang, p.level)}\n` +
       `Explain the meaning of the given ${langName(p.lang)} word or phrase AS USED IN THE SENTENCE. Be accurate; if a word is part of a fixed expression in the sentence, say so in the note.\n` +
@@ -131,7 +132,7 @@ export const wordTagSchema = (n: number, themes: readonly string[]) =>
 export function wordTagPrompt(p: { lang: Lang; uiLang: UiLang; words: { lemma: string; display: string; pos: string; level: string }[]; themes: Record<string, string> }): PromptSpec {
   return {
     id: "word_tag",
-    version: 1,
+    version: 2,
     system:
       `You build a learner's map of the ${langName(p.lang)} vocabulary. ${LEARNER(p.lang, p.uiLang, "B1")}\n` +
       `For EACH word (with its part of speech and CEFR level) give:\n` +
@@ -214,7 +215,7 @@ export const TalkOpenSchema = z.object({ reply: z.string().min(1) });
 export function talkOpenPrompt(s: ScenarioCtx): PromptSpec {
   return {
     id: "talk_open",
-    version: 1,
+    version: 2,
     system: tutorSystem(s),
     messages: [{ role: "user", content: `Start the conversation with your first line, in character. Reply with ONLY JSON: {"reply": "..."}` }],
   };
@@ -252,7 +253,7 @@ export function tutorTurnPrompt(s: ScenarioCtx, history: { role: "tutor" | "lear
         `"learner_used_l1": true if she spoke Russian/Ukrainian}`,
     },
   ];
-  return { id: "tutor_turn", version: 1, system: tutorSystem(s), messages };
+  return { id: "tutor_turn", version: 2, system: tutorSystem(s), messages };
 }
 
 export const TalkHelpSchema = z.object({ phrase: z.string(), translation: z.string() });
@@ -261,7 +262,7 @@ export function talkHelpPrompt(s: ScenarioCtx, history: { role: "tutor" | "learn
   const transcript = history.map((h) => `${h.role === "tutor" ? "OTHER PERSON" : "LEARNER"}: ${h.text}`).join("\n");
   return {
     id: "talk_help",
-    version: 1,
+    version: 2,
     system: `You help a language learner find what to say next in a role-play. ${LEARNER(s.lang, s.uiLang, s.level)} Situation: ${s.setting}`,
     messages: [
       {
@@ -303,7 +304,7 @@ export function feedbackPrompt(
   const transcript = history.map((h) => `${h.role === "tutor" ? "TUTOR" : "LEARNER"}: ${h.text}`).join("\n");
   return {
     id: "talk_feedback",
-    version: 2,
+    version: 3,
     system:
       `You are a warm, precise language teacher writing short feedback after a spoken role-play. ${LEARNER(s.lang, s.uiLang, s.level)}\n` +
       `Teaching rules: praise specifically; choose at most 2 fixes — the ones that matter most for being understood or that recur; ` +
@@ -331,7 +332,7 @@ export function feedbackPrompt(
 export function explainPrompt(p: { lang: Lang; uiLang: UiLang; level: string; title: string; body: string }): PromptSpec {
   return {
     id: "explain",
-    version: 1,
+    version: 2,
     system: `You are a patient ${langName(p.lang)} teacher. ${LEARNER(p.lang, p.uiLang, p.level)}`,
     messages: [
       {
