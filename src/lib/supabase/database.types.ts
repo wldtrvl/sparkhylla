@@ -551,6 +551,7 @@ export type Database = {
           setting: string;
           sort: number;
           title_ru: string;
+          topic: string | null;
         };
         Insert: {
           active?: boolean;
@@ -562,6 +563,7 @@ export type Database = {
           setting: string;
           sort?: number;
           title_ru: string;
+          topic?: string | null;
         };
         Update: {
           active?: boolean;
@@ -573,6 +575,7 @@ export type Database = {
           setting?: string;
           sort?: number;
           title_ru?: string;
+          topic?: string | null;
         };
         Relationships: [];
       };

@@ -42,6 +42,22 @@ const TOPICS: [string, string][] = [
   ["journalistikk", "новости и СМИ"],
   ["kommunikasjon", "общение"],
   ["reiseliv", "путешествия"],
+  // added after her first weeks: she watched and loved the care, health and work videos
+  ["helse og omsorg", "здоровье и уход"],
+  ["helsefagarbeider", "здоровье и уход"],
+  ["omsorg", "здоровье и уход"],
+  ["sykehjem", "здоровье и уход"],
+  ["hjemmetjeneste", "здоровье и уход"],
+  ["eldre", "здоровье и уход"],
+  ["frivillighet", "общество"],
+  ["førstehjelp", "здоровье"],
+  ["ernæring", "здоровье"],
+  ["tannhelse", "здоровье"],
+  ["arbeidsmiljø", "работа"],
+  ["kundeservice", "работа"],
+  ["salg og service", "работа"],
+  ["deltidsjobb", "работа"],
+  ["yrke", "работа"],
 ];
 // current foreign politics and wars are left out (Norwegian politics is fine)
 const FOREIGN_POLITICS = /\b(Trump|Biden|Putin|Ukraina|Russland|Israel|Gaza|Hamas|Palestina|Hizbollah|Taliban|IS-krigere)\b/i;
