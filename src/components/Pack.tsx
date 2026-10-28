@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { PackMinutes } from "@/lib/learning/packs";
 import { htmlLang } from "@/lib/text-format";
 import { speak } from "./audio";
-import { ExplainButton } from "./ExplainButton";
+import { GrammarDrill } from "./Grammar";
 import { Review, type ReviewCard } from "./Review";
 import { track } from "./tracker";
 
@@ -125,15 +125,16 @@ export function PackWords({ lang, packId, words }: { lang: "no" | "en"; packId: 
   );
 }
 
-/** The rule of the day: the explanation and an exercise; loading it marks the step done. */
-export function PackRule({ packId, topicKey, done }: { packId: string; topicKey: string; done: boolean }) {
+/** The rule of the day: checked practice (her own mistakes first); answering all of it marks the step done. */
+export function PackRule({ packId, topicKey, lang, done }: { packId: string; topicKey: string; lang: "no" | "en"; done: boolean }) {
   const router = useRouter();
   return (
-    <ExplainButton
-      topicKey={topicKey}
-      onExplained={() => {
+    <GrammarDrill
+      ruleKey={topicKey}
+      lang={lang}
+      onComplete={(score) => {
         if (done) return;
-        track("pack.step", { packId, step: "rule" });
+        track("pack.step", { packId, step: "rule", ...score });
         void fetch(`/api/packs/${packId}/rule`, { method: "POST" }).then(() => router.refresh());
       }}
     />

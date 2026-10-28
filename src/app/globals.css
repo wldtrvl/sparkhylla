@@ -435,3 +435,49 @@ table.data td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical
   .pack-themes { grid-template-columns: 1fr; }
   .pack-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ---------- grammar: rules, practice, sentence building ---------- */
+.grammar-card { color: var(--ink); text-decoration: none; gap: 8px; }
+.grammar-card:hover { border-color: var(--cloth); color: var(--ink); }
+.rule-pattern { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--brass-soft); color: var(--brass-ink); }
+.read-sentence { font-family: var(--f-read); font-size: 18px; }
+.speak-inline { position: static; opacity: 0.8; flex: none; }
+.mistake-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; font-family: var(--f-read); font-size: 18px; }
+.mistake-row .wrong { color: var(--oxblood); text-decoration: line-through; text-decoration-thickness: 1px; }
+.mistake-row .right { color: var(--ok); font-weight: 600; }
+.drill-item { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); }
+.drill-item.ok { border-color: #b9cfb0; background: #f3f7f0; }
+.drill-item.no { border-color: var(--oxblood-soft); background: #fbf2ef; }
+.drill-sentence { margin: 0; font-family: var(--f-read); font-size: 20px; }
+.drill-gap { display: inline-block; min-width: 3em; border-bottom: 2px solid var(--brass); text-align: center; color: var(--brass-ink); font-weight: 600; }
+.chips button.drill-right { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.chips button.drill-wrong { border-color: var(--oxblood); background: var(--oxblood-soft); color: var(--oxblood); }
+.builder { display: flex; flex-direction: column; gap: 10px; }
+.builder-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 6px 10px; border-radius: 12px; border: 1.5px dashed var(--line); background: var(--paper-2); }
+.builder-pool { display: flex; flex-wrap: wrap; gap: 6px; }
+.builder-chip { min-height: 38px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); font-family: var(--f-read); font-size: 18px; color: var(--ink); cursor: pointer; }
+.builder-chip:disabled { opacity: 0.35; cursor: default; }
+.builder-chip.in { background: var(--cloth-soft); border-color: var(--cloth); opacity: 1; }
+.builder-mark { font-family: var(--f-read); font-size: 20px; }
+.pattern-row { display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+.pattern-label { min-width: 130px; }
+.pattern-indent { padding-left: 138px; }
+.pattern-parts { display: inline-flex; flex-wrap: wrap; gap: 4px; font-family: var(--f-read); font-size: 19px; }
+.part { padding: 1px 7px; border-radius: 6px; border: 1px solid transparent; }
+.part.role-S { background: var(--cloth-soft); color: var(--cloth); }
+.part.role-V { background: var(--brass-soft); color: var(--brass-ink); font-weight: 700; }
+.part.role-V2 { background: #fbf1d9; color: var(--brass-ink); border-color: #e6cf97; }
+.part.role-NEG { background: var(--oxblood-soft); color: var(--oxblood); font-weight: 700; }
+.part.role-Q { color: var(--oxblood); border-color: var(--oxblood); }
+.part.role-C { background: var(--ok-soft); color: var(--ok); }
+.part.role-T, .part.role-P { border: 1px dashed var(--muted); color: var(--ink); }
+.part.role-O, .part.role-X { background: var(--paper-2); color: var(--ink); }
+.rule-pattern .pattern-parts, .role-legend { font-family: var(--f-ui); font-size: 14px; }
+.role-legend { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; }
+@media (max-width: 860px) {
+  .pattern-indent { padding-left: 0; }
+  .pattern-label { min-width: 0; width: 100%; }
+}
+.builder-mark { margin-left: -5px; }
+.rule-pattern .part { background: var(--paper); }
+.rule-pattern .part.role-V { background: var(--paper); border-color: var(--brass); }

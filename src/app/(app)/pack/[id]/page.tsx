@@ -159,8 +159,11 @@ export default async function PackPage({ params }: PageProps<"/pack/[id]">) {
                           </li>
                         ))}
                       </ul>
-                      <span className="small muted">Эту ошибку вы чаще всего делаете в разговорах. Разберите правило и упражнение:</span>
-                      <PackRule packId={pack.id} topicKey={rule.key} done={!!done.get("rule")} />
+                      <span className="small muted">Эту ошибку вы чаще всего делаете в разговорах. Упражнения проверяются сразу:</span>
+                      <PackRule packId={pack.id} topicKey={rule.key} lang={pack.lang} done={!!done.get("rule")} />
+                      <Link href={`/grammar/${rule.key}`} className="small">
+                        Правило целиком и мои заметки →
+                      </Link>
                     </>,
                   )}
                 </div>

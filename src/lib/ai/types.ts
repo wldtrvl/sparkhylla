@@ -8,6 +8,7 @@ export type Task =
   | "talk_help" // "help me say it"
   | "talk_feedback" // post-conversation feedback
   | "explain" // grammar explanation + exercise
+  | "grammar_drill" // checked exercises for one grammar rule (choose, word order, fix the mistake)
   | "translate" // sentence-by-sentence translation of a page (reader, «Перевод рядом»)
   | "word_lemma" // «Карта слов» build: frequency-list forms → dictionary word + part of speech
   | "word_tag" // «Карта слов» build: theme, translation, other ways to say it

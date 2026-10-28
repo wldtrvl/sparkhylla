@@ -253,7 +253,8 @@ export function tutorTurnPrompt(s: ScenarioCtx, history: { role: "tutor" | "lear
         `"learner_used_l1": true if she spoke Russian/Ukrainian}`,
     },
   ];
-  return { id: "tutor_turn", version: 2, system: tutorSystem(s), messages };
+  // v3: 47 rule keys to note mistakes with (was 18)
+  return { id: "tutor_turn", version: 3, system: tutorSystem(s), messages };
 }
 
 export const TalkHelpSchema = z.object({ phrase: z.string(), translation: z.string() });
@@ -304,7 +305,7 @@ export function feedbackPrompt(
   const transcript = history.map((h) => `${h.role === "tutor" ? "TUTOR" : "LEARNER"}: ${h.text}`).join("\n");
   return {
     id: "talk_feedback",
-    version: 3,
+    version: 4, // v4: 47 rule keys (was 18)
     system:
       `You are a warm, precise language teacher writing short feedback after a spoken role-play. ${LEARNER(s.lang, s.uiLang, s.level)}\n` +
       `Teaching rules: praise specifically; choose at most 2 fixes — the ones that matter most for being understood or that recur; ` +
@@ -344,6 +345,37 @@ export function explainPrompt(p: { lang: Lang; uiLang: UiLang; level: string; ti
           `then, after a blank line, the answers under the heading "Ответы:" (or "Відповіді:" in Ukrainian).`,
       },
     ],
+  };
+}
+
+// ---------- grammar practice ----------
+export const GrammarDrillSchema = z.object({
+  items: z
+    .array(
+      z.discriminatedUnion("type", [
+        z.object({ type: z.literal("choose"), sentence: z.string(), options: z.array(z.string()).min(2).max(3), answer: z.string(), ru: z.string() }),
+        z.object({ type: z.literal("order"), sentence: z.string(), ru: z.string() }),
+        z.object({ type: z.literal("fix"), wrong: z.string(), right: z.string(), ru: z.string() }),
+      ]),
+    )
+    .min(4)
+    .max(8),
+});
+export type GrammarDrill = z.infer<typeof GrammarDrillSchema>;
+
+/** Checked exercises for one rule: the app checks the answers itself, so every item carries its solution. */
+export function grammarDrillPrompt(p: { lang: Lang; uiLang: UiLang; level: string; title: string; body: string; pattern?: string; examples: [string, string][] }): PromptSpec {
+  return {
+    id: "grammar_drill",
+    version: 1,
+    system:
+      `You write short grammar exercises in ${langName(p.lang)}. ${LEARNER(p.lang, p.uiLang, p.level)}\n` +
+      `Use everyday situations from her life in Norway (work, shop, doctor, family, neighbours), simple words at level ${p.level}. Every sentence must be correct, natural ${langName(p.lang)}${p.lang === "no" ? " bokmål" : ""}, and must practise exactly this rule.\n` +
+      `Make 6 items, in this order: 2 × "choose" ({"type": "choose", "sentence": with ___ where the choice goes, "options": 2–3 short options, "answer": the correct option exactly as in options, "ru": ${uiName(p.uiLang)} translation}), ` +
+      `2 × "order" ({"type": "order", "sentence": a correct sentence of 4–8 words where word order matters for this rule, "ru": translation}), ` +
+      `2 × "fix" ({"type": "fix", "wrong": a sentence with ONE typical mistake against this rule, "right": the corrected sentence, "ru": translation}).\n` +
+      `Reply with ONLY a JSON object {"items": [...]}.`,
+    messages: [{ role: "user", content: `Rule: ${p.title}. ${p.body}${p.pattern ? ` Pattern: ${p.pattern}.` : ""} Examples: ${p.examples.map(([a]) => a).join(" | ")}` }],
   };
 }
 
