@@ -59,3 +59,13 @@ test("library search says when nothing matches", async ({ page }) => {
   await page.goto("/library?q=zzzz-no-such-book");
   await expect(page.getByText("По запросу «zzzz-no-such-book» ничего не нашлось.")).toBeVisible();
 });
+
+test("small laptop: the language switch and the whole menu are on screen", async ({ page, isMobile }) => {
+  test.skip(!!isMobile, "laptop layout only");
+  // 1366×768 at 125 % Windows scaling, minus the browser's bars
+  await page.setViewportSize({ width: 1093, height: 560 });
+  await page.goto("/");
+  const sidebar = page.locator("aside.sidebar");
+  for (const name of ["Norsk", "English"]) await expect(sidebar.getByRole("button", { name, exact: true })).toBeInViewport();
+  await expect(sidebar.getByRole("link", { name: "Настройки" })).toBeInViewport();
+});
