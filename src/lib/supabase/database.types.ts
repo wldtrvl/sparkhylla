@@ -130,10 +130,12 @@ export type Database = {
       conversations: {
         Row: {
           ended_at: string | null;
+          extra_goals: NonNullable<Json>;
           goals_done: string[];
           id: string;
           lang: string;
           level: string;
+          pack_id: string | null;
           scenario_id: string | null;
           started_at: string;
           summary: Json | null;
@@ -141,10 +143,12 @@ export type Database = {
         };
         Insert: {
           ended_at?: string | null;
+          extra_goals?: NonNullable<Json>;
           goals_done?: string[];
           id?: string;
           lang: string;
           level: string;
+          pack_id?: string | null;
           scenario_id?: string | null;
           started_at?: string;
           summary?: Json | null;
@@ -152,16 +156,25 @@ export type Database = {
         };
         Update: {
           ended_at?: string | null;
+          extra_goals?: NonNullable<Json>;
           goals_done?: string[];
           id?: string;
           lang?: string;
           level?: string;
+          pack_id?: string | null;
           scenario_id?: string | null;
           started_at?: string;
           summary?: Json | null;
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "conversations_pack_id_fkey";
+            columns: ["pack_id"];
+            isOneToOne: false;
+            referencedRelation: "packs";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "conversations_scenario_id_fkey";
             columns: ["scenario_id"];
@@ -377,6 +390,51 @@ export type Database = {
           provider?: string;
           task?: string;
           weight?: number;
+        };
+        Relationships: [];
+      };
+      packs: {
+        Row: {
+          day: string;
+          finished_at: string | null;
+          id: string;
+          lang: string;
+          minutes: number;
+          plan: NonNullable<Json>;
+          progress: NonNullable<Json>;
+          results: Json | null;
+          started_at: string;
+          status: string;
+          theme: string;
+          user_id: string;
+        };
+        Insert: {
+          day: string;
+          finished_at?: string | null;
+          id?: string;
+          lang: string;
+          minutes: number;
+          plan: NonNullable<Json>;
+          progress?: NonNullable<Json>;
+          results?: Json | null;
+          started_at?: string;
+          status?: string;
+          theme: string;
+          user_id: string;
+        };
+        Update: {
+          day?: string;
+          finished_at?: string | null;
+          id?: string;
+          lang?: string;
+          minutes?: number;
+          plan?: NonNullable<Json>;
+          progress?: NonNullable<Json>;
+          results?: Json | null;
+          started_at?: string;
+          status?: string;
+          theme?: string;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -854,6 +912,7 @@ export type Database = {
           lapses: number;
           lemma: string | null;
           note: string | null;
+          pack_id: string | null;
           reps: number;
           source: string | null;
           status: string;
@@ -873,6 +932,7 @@ export type Database = {
           lapses?: number;
           lemma?: string | null;
           note?: string | null;
+          pack_id?: string | null;
           reps?: number;
           source?: string | null;
           status?: string;
@@ -892,6 +952,7 @@ export type Database = {
           lapses?: number;
           lemma?: string | null;
           note?: string | null;
+          pack_id?: string | null;
           reps?: number;
           source?: string | null;
           status?: string;
@@ -900,7 +961,15 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "words_pack_id_fkey";
+            columns: ["pack_id"];
+            isOneToOne: false;
+            referencedRelation: "packs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {

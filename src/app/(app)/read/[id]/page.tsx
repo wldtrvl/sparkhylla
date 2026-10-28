@@ -57,6 +57,8 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
   }
 
   const video = asVideo((data as { video?: unknown }).video);
+  // opened from «Набор дня»: saved words go into its basket, and «Я дочитала» leads back to it
+  const packId = typeof sp.pack === "string" && /^[0-9a-f-]{36}$/.test(sp.pack) ? sp.pack : undefined;
   // a video transcript stays on one page, so the player keeps playing while she reads
   const pages = video ? [t.body.split("\n\n")] : paginate(t.body);
   const [{ data: prog }, { known, learning }] = await Promise.all([
@@ -82,7 +84,7 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
       <div className="page">
         {header}
         {video ? (
-          <VideoReader video={video} lang={t.lang} textId={t.id} source={`text:${t.id}`} paragraphs={pages[0]} unknown={cov.unknown} learning={learning} />
+          <VideoReader video={video} lang={t.lang} textId={t.id} source={`text:${t.id}`} paragraphs={pages[0]} unknown={cov.unknown} learning={learning} packId={packId} />
         ) : (
           <Reader
             key={pageIdx}
@@ -93,9 +95,10 @@ export default async function ReadPage({ params, searchParams }: PageProps<"/rea
             unknown={cov.unknown}
             learning={learning}
             audioUrl={t.audio_url}
+            packId={packId}
           />
         )}
-        <PageNav textId={t.id} page={pageIdx} total={pages.length} coverage={whole.coverage} />
+        <PageNav textId={t.id} page={pageIdx} total={pages.length} coverage={whole.coverage} packId={packId} />
       </div>
       <p className="small muted text-center">
         {t.license ? `${video ? "Видео и субтитры" : "Текст"}: ${t.license}.` : ""} {t.source_url ? <a href={t.source_url} target="_blank" rel="noopener noreferrer">Источник</a> : null}

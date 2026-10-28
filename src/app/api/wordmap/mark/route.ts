@@ -12,6 +12,8 @@ const Body = z.object({
   lemmas: z.array(z.string().min(1).max(80)).min(1).max(1000),
   /** known: «Знаю»; learning: «Учить» (goes to review); none: take the «Знаю» mark off */
   status: z.enum(["known", "learning", "none"]),
+  /** marked as one of «Набор дня»'s key words: new rows go into that pack's basket */
+  packId: z.string().uuid().optional(),
 });
 
 /**
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
   const [map, mine] = await Promise.all([loadMap(s.supabase, b.lang), ownWords(s.supabase, s.user.id, b.lang)]);
   const targets = [...new Set(b.lemmas.map(normalizeTerm))].map((l) => map.byLemma.get(l)).filter((w) => !!w);
   const plan = planMarks(targets, mine, b.status, b.lemmas.length === 1);
+  const pack = b.packId ? (await s.supabase.from("packs").select("id").eq("id", b.packId).eq("user_id", s.user.id).eq("status", "active").maybeSingle()).data : null;
   const now = new Date();
   const toKnown = plan.toKnown;
   const toLearning = plan.toLearning;
@@ -42,6 +45,7 @@ export async function POST(req: Request) {
       kind: "word",
       status: b.status === "learning" ? "learning" : "known",
       source: "map",
+      ...(pack ? { pack_id: pack.id } : {}),
       fsrs: card ? toJson(card) : null,
       due: card ? now.toISOString() : null,
       updated_at: now.toISOString(),

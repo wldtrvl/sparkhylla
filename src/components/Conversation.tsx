@@ -10,10 +10,12 @@ import { htmlLang } from "@/lib/text-format";
 interface Props {
   scenario: { id: string; title: string; lang: "no" | "en"; level: string; persona: string; goals: { id: string; ru: string }[] };
   serverStt: boolean;
+  /** started from «Набор дня»: the pack's goal is in `goals`, and the conversation is linked to the pack */
+  packId?: string;
 }
 type Line = { role: "tutor" | "learner"; text: string; notes?: number; pending?: boolean };
 
-export function Conversation({ scenario, serverStt }: Props) {
+export function Conversation({ scenario, serverStt, packId }: Props) {
   const router = useRouter();
   const [convId, setConvId] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -32,7 +34,7 @@ export function Conversation({ scenario, serverStt }: Props) {
     started.current = true;
     (async () => {
       try {
-        const r = await fetch("/api/talk/start", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scenarioId: scenario.id }) });
+        const r = await fetch("/api/talk/start", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scenarioId: scenario.id, packId }) });
         const d = await r.json();
         if (!r.ok) throw new Error(d.error);
         setConvId(d.conversationId);
@@ -44,7 +46,7 @@ export function Conversation({ scenario, serverStt }: Props) {
         setBusy("");
       }
     })();
-  }, [scenario.id, scenario.lang]);
+  }, [scenario.id, scenario.lang, packId]);
 
   /**
    * One turn. Speech is recognised first, so her sentence shows at once; then the reply is requested.

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { bandSize, fitFromLevel, fitGroup, type FitGroup, type Lang } from "@/lib/learning/coverage";
 import { wordState, type Session } from "@/lib/session";
 
@@ -35,7 +36,8 @@ export interface LibraryItem extends Omit<TextRow, "body"> {
  * Library ordered by fit: books where she knows most words come first. Originals only — never adapted.
  * Coverage is computed in the database from each book's stored vocabulary (text_fit), so no book text is sent.
  */
-export async function libraryFor(s: Session, lang: Lang): Promise<LibraryItem[]> {
+// cached per request: the desk needs it for «Мой путь» and for «Набор дня»
+export const libraryFor = cache(async (s: Session, lang: Lang): Promise<LibraryItem[]> => {
   const reading = s.profile.levels[lang]?.reading ?? "B1";
   // her words are needed for text_fit; the book list and progress load at the same time
   const fitQuery = wordState(s, lang).then((w) => s.supabase.rpc("text_fit", { p_lang: lang, p_band: bandSize(reading), p_own: [...w.known.own] }));
@@ -62,7 +64,7 @@ export async function libraryFor(s: Session, lang: Lang): Promise<LibraryItem[]>
   });
   const order: Record<FitGroup, number> = { fits: 0, stretch: 1, later: 2 };
   return items.sort((a, b) => order[a.group] - order[b.group] || (b.coverage ?? 0.94) - (a.coverage ?? 0.94));
-}
+});
 
 export const COVER_COLORS = ["#7b2d26", "#2c3e5a", "#a97a2c", "#2e4a3b", "#5a3a4a", "#4a3a2a"];
 export function coverColor(id: string) {

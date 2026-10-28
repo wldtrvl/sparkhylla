@@ -39,6 +39,8 @@ export async function insertText(t: {
   source_url: string;
   license: string;
   est_level?: string;
+  /** themes for «Набор дня» (see PACK_THEMES in src/lib/learning/packs.ts) */
+  tags?: string[];
 }): Promise<{ id: string; status: "created" | "updated" | "kept" }> {
   const db = admin();
   const { data: existing } = await db.from("texts").select("id").eq("title", t.title).eq("author", t.author).maybeSingle();

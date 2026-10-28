@@ -83,6 +83,8 @@ export function Reader(props: {
   unknown: string[];
   learning: string[];
   audioUrl?: string | null; // a real recording of the text: shown instead of the synthetic «Слушать страницу»
+  /** «Набор дня» this reading belongs to: saved words go into its basket */
+  packId?: string;
   /** a video transcript: the paragraph being spoken, and a button per paragraph that jumps the video there */
   video?: { starts: number[]; active: number | null; onSeek: (paragraph: number) => void };
 }) {
@@ -263,6 +265,7 @@ export function Reader(props: {
         status,
         context: sel.sentence,
         source: props.source,
+        packId: props.packId,
       }),
     }).catch(() => null);
     if (!r?.ok) {

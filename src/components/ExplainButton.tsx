@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 
-export function ExplainButton({ topicKey }: { topicKey: string }) {
+/** `onExplained`: called when the explanation and exercise have loaded (a pack marks its rule step done). */
+export function ExplainButton({ topicKey, onExplained }: { topicKey: string; onExplained?: () => void }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -13,6 +14,7 @@ export function ExplainButton({ topicKey }: { topicKey: string }) {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setText(d.text);
+      onExplained?.();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ошибка");
     } finally {

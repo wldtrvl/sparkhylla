@@ -9,7 +9,7 @@ import { htmlLang } from "@/lib/text-format";
 export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id]">) {
   const s = await requireSession();
   const { id } = await params;
-  const { data: conv } = await s.supabase.from("conversations").select("id,scenario_id,lang,goals_done,started_at,ended_at,summary").eq("id", id).eq("user_id", s.user.id).maybeSingle();
+  const { data: conv } = await s.supabase.from("conversations").select("id,scenario_id,lang,goals_done,started_at,ended_at,summary,pack_id,extra_goals").eq("id", id).eq("user_id", s.user.id).maybeSingle();
   if (!conv) notFound();
   const [{ data: sc }, { data: fixes }, { data: turns }] = await Promise.all([
     s.supabase.from("scenarios").select("title_ru,goals").eq("id", conv.scenario_id ?? "").maybeSingle(),
@@ -27,8 +27,13 @@ export default async function ReviewTalk({ params }: PageProps<"/talk/review/[id
           Разговор завершён{minutes ? ` · ${minutes} мин` : ""} · {sc?.title_ru}
         </span>
         <h1 className="display display-sm">
-          Цели: {conv.goals_done.length} из {(sc?.goals as unknown[] | undefined)?.length ?? "?"}
+          Цели: {conv.goals_done.length} из {((sc?.goals as unknown[] | undefined)?.length ?? 0) + ((conv.extra_goals as unknown[] | null)?.length ?? 0) || "?"}
         </h1>
+        {conv.pack_id && (
+          <Link href={`/pack/${conv.pack_id}`} className="btn self-start">
+            ← Вернуться к набору дня
+          </Link>
+        )}
         {fb?.summary && <p className="lead">{fb.summary}</p>}
       </div>
       <div className="split">

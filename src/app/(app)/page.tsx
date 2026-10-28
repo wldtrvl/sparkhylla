@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { PackPicker } from "@/components/Pack";
+import { PackResultCard, PackStepList } from "@/components/PackViews";
 import { UpdateBanner } from "@/components/UpdatesSeen";
+import { themeOf } from "@/lib/learning/packs";
+import { offerThemes, packState, todayPack } from "@/lib/packs-data";
 import { GRAMMAR } from "@/lib/learning/grammar";
 import { quoteOfDay, type Quote } from "@/lib/learning/quotes";
 import { loadPath } from "@/lib/path-data";
@@ -35,6 +39,10 @@ export default async function DeskPage() {
   ]);
 
   const { path, library } = pathData;
+  // «Набор дня»: today's pack in this language, or three themes to choose from
+  const pack = await todayPack(s, lang, clock.now);
+  const packNow = pack?.status === "active" ? await packState(s, pack) : null;
+  const themes = pack?.status === "active" ? [] : await offerThemes(s, lang, clock.now);
   const quote = quoteOfDay((quotes.data ?? []) as Quote[]);
   const dueCount = due.count ?? 0;
   const reading = library.find((b) => b.progress && !b.progress.finished) ?? library.find((b) => b.group === "fits" && !b.progress?.finished) ?? library[0];
@@ -50,7 +58,7 @@ export default async function DeskPage() {
   const days = new Set(((activity.data ?? []) as DailyActivity[]).filter((d) => Number(d.minutes) >= 1).map((d) => String(d.day)));
   const week = clock.dayKeys(7);
 
-  logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id, newUpdates: updates.count });
+  logEvent(s, "decision.daily_plan", { lang, dueCount, textId: reading?.id, scenario: scenario?.id, grammar: topic.key, grammarFromMistakes: !!topKey, quoteId: quote?.id, newUpdates: updates.count, pack: pack?.id, packStatus: pack?.status ?? null });
 
   const date = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Oslo" }).format(new Date());
   const name = s.profile.display_name;
@@ -77,6 +85,52 @@ export default async function DeskPage() {
       </div>
 
       {updates.latest && <UpdateBanner count={updates.count} title={updates.latest.title} />}
+
+      <section className="card pack-desk">
+        {pack?.status === "active" && packNow ? (
+          <>
+            <div className="row" style={{ gap: 8 }}>
+              <span className="eyebrow">Набор дня · {pack.minutes} мин</span>
+              <span className="small muted ml-auto">в корзине: {packNow.basket.length}</span>
+            </div>
+            <h2 className="display display-sm">{themeOf(pack.theme)?.title ?? pack.theme}</h2>
+            <PackStepList steps={packNow.steps} />
+            <Link className="btn self-start" href={`/pack/${pack.id}`}>
+              {packNow.steps.some((x) => x.done) ? "Продолжить набор" : "Открыть набор"}
+            </Link>
+          </>
+        ) : pack?.status === "finished" && pack.results ? (
+          <>
+            <div className="row" style={{ gap: 8 }}>
+              <span className="eyebrow">Набор дня готов · {themeOf(pack.theme)?.title ?? pack.theme}</span>
+              <Link href={`/pack/${pack.id}`} className="small ml-auto">
+                Итог →
+              </Link>
+            </div>
+            <PackResultCard pack={pack} results={pack.results} compact />
+            <details>
+              <summary className="small strong" style={{ cursor: "pointer" }}>
+                Ещё один набор
+              </summary>
+              <div style={{ marginTop: 12 }}>
+                <PackPicker themes={themes} />
+              </div>
+            </details>
+          </>
+        ) : (
+          <>
+            <span className="eyebrow">Набор дня</span>
+            <h2 className="display display-sm">Что изучаем сегодня?</h2>
+            <p className="small muted" style={{ margin: 0 }}>
+              Выберите тему и время — приложение соберёт видео, слова, разговор и правило, а в конце покажет, что вы собрали и выучили.
+            </p>
+            <PackPicker themes={themes} />
+          </>
+        )}
+        <Link href="/pack" className="small self-start">
+          Мои наборы
+        </Link>
+      </section>
 
       {quote && (
         <figure className="quote">

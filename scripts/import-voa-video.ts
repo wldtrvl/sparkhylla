@@ -22,11 +22,11 @@ import { admin, insertText, newTexts, plural } from "./lib";
 const BASE = "https://learningenglish.voanews.com";
 const UA = "Sprakhylla/0.1 (personal language-learning app)";
 const SERIES = [
-  { id: 6324, name: "Let's Learn English, Level 1", level: "A1", note: "Сериал для начинающих: Анна переезжает в Вашингтон, знакомится с людьми и учится жить в большом городе. Простые разговоры на американском английском." },
-  { id: 6325, name: "Let's Learn English, Level 2", level: "A2", note: "Продолжение сериала про Анну: работа, друзья и повседневная жизнь в Вашингтоне. Разговоры чуть сложнее, чем в первом уровне." },
-  { id: 3619, name: "English in a Minute", level: "A2", note: "Одна минута — одно популярное выражение американского английского, с примерами из жизни." },
-  { id: 3620, name: "News Words", level: "B1", note: "Короткое видео об одном слове, которое часто звучит в новостях." },
-  { id: 4716, name: "Everyday Grammar TV", level: "B1", note: "Короткие уроки грамматики с живыми примерами на улицах американских городов." },
+  { id: 6324, name: "Let's Learn English, Level 1", level: "A1", theme: "everyday", note: "Сериал для начинающих: Анна переезжает в Вашингтон, знакомится с людьми и учится жить в большом городе. Простые разговоры на американском английском." },
+  { id: 6325, name: "Let's Learn English, Level 2", level: "A2", theme: "everyday", note: "Продолжение сериала про Анну: работа, друзья и повседневная жизнь в Вашингтоне. Разговоры чуть сложнее, чем в первом уровне." },
+  { id: 3619, name: "English in a Minute", level: "A2", theme: "expressions", note: "Одна минута — одно популярное выражение американского английского, с примерами из жизни." },
+  { id: 3620, name: "News Words", level: "B1", theme: "news", note: "Короткое видео об одном слове, которое часто звучит в новостях." },
+  { id: 4716, name: "Everyday Grammar TV", level: "B1", theme: "everyday", note: "Короткие уроки грамматики с живыми примерами на улицах американских городов." },
 ];
 // current US and world politics and wars are left out
 const POLITICS = /\b(Trump|Biden|Harris|Putin|Netanyahu|Zelensky|election|Congress|Senate|Democrats?|Republicans?|White House|Gaza|Hamas|Ukrain\w*|Russia\w*|missile|troops|military|sanctions?|tariffs?)\b/i;
@@ -168,6 +168,7 @@ async function main() {
           source_url: BASE + link,
           license: "public domain (VOA Learning English, US government work); transcript made automatically",
           est_level: sec.level,
+          tags: [sec.theme],
         });
         added.add(r.status, sec.name);
         const q = db.from("texts").update({ video: { provider: "mp4", src: v.play, paras: times } }).eq("id", r.id);

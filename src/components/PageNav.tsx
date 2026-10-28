@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { track } from "./tracker";
 
-export function PageNav({ textId, page, total, coverage }: { textId: string; page: number; total: number; coverage: number }) {
+export function PageNav({ textId, page, total, coverage, packId }: { textId: string; page: number; total: number; coverage: number; packId?: string }) {
   const router = useRouter();
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -14,7 +14,7 @@ export function PageNav({ textId, page, total, coverage }: { textId: string; pag
   }, [textId, page, coverage]);
 
   const go = (p: number) => {
-    router.push(`/read/${textId}?page=${p}`);
+    router.push(`/read/${textId}?page=${p}${packId ? `&pack=${packId}` : ""}`);
     window.scrollTo({ top: 0 });
   };
 
@@ -51,6 +51,13 @@ export function PageNav({ textId, page, total, coverage }: { textId: string; pag
           </button>
         )}
       </div>
+      {done && packId && (
+        <div className="row" style={{ justifyContent: "center" }}>
+          <a className="btn" href={`/pack/${packId}`} onClick={() => track("pack.back", { packId, from: "read" })}>
+            Вернуться к набору дня →
+          </a>
+        </div>
+      )}
       {done && (
         <div className="row" style={{ justifyContent: "center", gap: 8 }} aria-live="polite">
           {rated ? (

@@ -15,6 +15,8 @@ const Save = z.object({
   status: z.enum(["learning", "known", "ignored"]).default("learning"),
   context: z.string().max(600).optional(),
   source: z.string().max(80).optional(),
+  /** saved during «Набор дня»: goes into that pack's basket */
+  packId: z.string().uuid().optional(),
 });
 
 /** Save a word to learn, or mark it as already known (both update coverage). Idempotent per term. */
@@ -25,6 +27,8 @@ export async function POST(req: Request) {
   if (isResponse(b)) return b;
   const now = new Date();
   const card = b.status === "learning" ? newCard(now) : null;
+  // only her own active pack can collect words
+  const pack = b.packId ? (await s.supabase.from("packs").select("id").eq("id", b.packId).eq("user_id", s.user.id).eq("status", "active").maybeSingle()).data : null;
   const { data: existing } = await s.supabase.from("words").select("id,status").eq("user_id", s.user.id).eq("lang", b.lang).ilike("term", b.term.replace(/[\\%_]/g, (c) => `\\${c}`)).maybeSingle();
   const row = {
     user_id: s.user.id,
@@ -37,6 +41,7 @@ export async function POST(req: Request) {
     status: b.status,
     context: b.context ?? null,
     source: b.source ?? null,
+    ...(pack ? { pack_id: pack.id } : {}),
     updated_at: now.toISOString(),
     ...(existing && existing.status === "learning" && b.status === "learning" ? {} : { fsrs: card, due: card ? now.toISOString() : null }),
   };

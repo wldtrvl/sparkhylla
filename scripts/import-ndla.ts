@@ -59,6 +59,12 @@ const TOPICS: [string, string][] = [
   ["deltidsjobb", "работа"],
   ["yrke", "работа"],
 ];
+// «Набор дня» theme of each topic (the same mapping tagged the videos imported before, migration 0016)
+const THEME: Record<string, string> = {
+  работа: "work", здоровье: "health", "здоровье и уход": "care", "забота о пожилых": "care", семья: "home", еда: "home",
+  общество: "society", деньги: "society", природа: "nature", путешествия: "nature", культура: "culture", история: "culture",
+  язык: "culture", "новости и СМИ": "media", общение: "media",
+};
 // current foreign politics and wars are left out (Norwegian politics is fine)
 const FOREIGN_POLITICS = /\b(Trump|Biden|Putin|Ukraina|Russland|Israel|Gaza|Hamas|Palestina|Hizbollah|Taliban|IS-krigere)\b/i;
 const NYNORSK = /\b(ikkje|eg|kva|korleis|berre|noko|frå|heile|kvar|meir|dei|vore|gjekk)\b/gi;
@@ -166,6 +172,7 @@ async function main() {
           source_url: `https://ndla.no/article/${articleId}`,
           license: `${license} (NDLA${credits ? `; ${credits}` : ""})`,
           est_level: "B1",
+          tags: [THEME[topicRu] ?? "other"],
         });
         added.add(r.status, title);
         // the player and paragraph times: with a new or replaced transcript, or for a video saved without them

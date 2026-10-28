@@ -140,7 +140,7 @@ function FilePlayer({ v, textId, onTime, controlsRef }: { v: Extract<VideoInfo, 
   );
 }
 
-export function VideoReader(props: { video: VideoInfo; lang: "no" | "en"; textId: string; source: string; paragraphs: string[]; unknown: string[]; learning: string[] }) {
+export function VideoReader(props: { video: VideoInfo; lang: "no" | "en"; textId: string; source: string; paragraphs: string[]; unknown: string[]; learning: string[]; packId?: string }) {
   const controlsRef = useRef<Controls | null>(null);
   const [active, setActive] = useState<number | null>(null);
   const times = props.video.paras && props.video.paras.length === props.paragraphs.length ? props.video.paras : null;
@@ -173,6 +173,7 @@ export function VideoReader(props: { video: VideoInfo; lang: "no" | "en"; textId
         paragraphs={props.paragraphs}
         unknown={props.unknown}
         learning={props.learning}
+        packId={props.packId}
         video={{ starts: times ? times.map((x) => x[0]) : [], active, onSeek }}
       />
     </>

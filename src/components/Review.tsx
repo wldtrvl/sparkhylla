@@ -25,7 +25,8 @@ function gapped(context: string | null, term: string) {
   return { before: context.slice(0, i), after: context.slice(i + term.length) };
 }
 
-export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[] }) {
+/** `onFinished`: called once the last card is graded (the pack page refreshes its steps). */
+export function Review({ lang, cards, onFinished }: { lang: "no" | "en"; cards: ReviewCard[]; onFinished?: () => void }) {
   const [queue, setQueue] = useState(cards);
   const [i, setI] = useState(0);
   const [given, setGiven] = useState("");
@@ -138,7 +139,9 @@ export function Review({ lang, cards }: { lang: "no" | "en"; cards: ReviewCard[]
       return;
     }
     // a forgotten card comes back once more at the end of today's session
-    if (answer === "forgot" && queue.filter((c) => c.id === card.id).length < 2) setQueue((q) => [...q, card]);
+    const again = answer === "forgot" && queue.filter((c) => c.id === card.id).length < 2;
+    if (again) setQueue((q) => [...q, card]);
+    if (!again && i + 1 >= queue.length) onFinished?.();
     setI((x) => x + 1);
     setGiven("");
     setVerdict(null);

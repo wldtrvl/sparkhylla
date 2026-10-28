@@ -15,7 +15,7 @@ export interface ConversationRow {
 
 export async function loadConversation(s: Session, id: string) {
   const [{ data: conv }, { data: turns }] = await Promise.all([
-    s.supabase.from("conversations").select("id,user_id,scenario_id,lang,level,goals_done,ended_at").eq("id", id).eq("user_id", s.user.id).maybeSingle(),
+    s.supabase.from("conversations").select("id,user_id,scenario_id,lang,level,goals_done,ended_at,extra_goals").eq("id", id).eq("user_id", s.user.id).maybeSingle(),
     s.supabase.from("conversation_turns").select("role,text,notes").eq("conversation_id", id).order("id"),
   ]);
   if (!conv?.scenario_id) return null;
@@ -24,7 +24,8 @@ export async function loadConversation(s: Session, id: string) {
   const ctx: ScenarioCtx = {
     persona: sc.persona,
     setting: sc.setting,
-    goals: asGoals(sc.goals),
+    // a «Набор дня» conversation adds its own goal (use words from the pack)
+    goals: [...asGoals(sc.goals), ...asGoals(conv.extra_goals)],
     lang: asLang(conv.lang),
     level: conv.level,
     uiLang: s.profile.ui_lang,
