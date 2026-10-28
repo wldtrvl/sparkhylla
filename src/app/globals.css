@@ -62,6 +62,19 @@ p { margin: 0; }
 .langswitch button { flex: 1; border: 0; border-radius: 999px; padding: 8px 0; background: transparent; color: var(--cloth-ink); cursor: pointer; font-size: 14px; }
 .langswitch button[aria-pressed="true"] { background: var(--cloth-ink); color: var(--cloth); font-weight: 600; }
 .main { flex: 1; min-width: 0; padding: 40px 48px 64px; }
+/* Short laptop screens (1366×768 minus browser bars, or Windows scaling at 125–150 %): a compact sidebar
+   that scrolls if it still does not fit, so nothing in it is ever out of reach. */
+@media (min-width: 861px) {
+  .sidebar { overflow-y: auto; scrollbar-width: thin; }
+}
+@media (min-width: 861px) and (max-height: 820px) {
+  .sidebar { padding: 18px 14px; gap: 14px; }
+  .brand b { font-size: 26px; }
+  .brand span { display: none; }
+  .nav { gap: 1px; }
+  .nav a { padding: 7px 12px; font-size: 14.5px; }
+  .main { padding-top: 24px; }
+}
 .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 
 @media (max-width: 860px) {
@@ -70,7 +83,7 @@ p { margin: 0; }
     position: fixed; inset: auto 0 0 0; top: auto; width: auto; height: auto; z-index: 30;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); flex-direction: row; gap: 0; box-shadow: none;
   }
-  .brand, .sidebar-foot { display: none; }
+  .brand, .sidebar-foot, .sidebar > .langswitch { display: none; } /* phones: language switch in the top bar */
   .nav { flex-direction: row; justify-content: space-around; width: 100%; gap: 2px; }
   .nav a, .nav-more { flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.15; padding: 7px 2px; flex: 1; min-height: 56px; justify-content: center; text-align: center; }
   .nav svg { width: 22px; height: 22px; }
@@ -208,7 +221,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.55; }
 .phrase-btn { position: fixed; transform: translateX(-50%); z-index: 45; box-shadow: var(--shadow); }
 .reader { position: relative; display: flex; flex-direction: column; gap: 14px; }
 .reader-tip { flex: 1; min-width: 220px; }
-.gloss.popover { position: absolute; z-index: 30; width: min(380px, 100%); box-shadow: 0 18px 44px rgba(60, 40, 20, 0.22); border-color: var(--cloth); }
+.gloss.popover { position: absolute; z-index: 30; width: min(420px, 100%); overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 18px 44px rgba(60, 40, 20, 0.22); border-color: var(--cloth); }
+.gloss.docked { position: fixed; z-index: 40; width: min(420px, calc(100vw - 32px)); overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 18px 44px rgba(60, 40, 20, 0.28); border-color: var(--cloth); }
 .gloss.popover.above { transform: translateY(-100%); }
 
 /* ---------- conversation ---------- */

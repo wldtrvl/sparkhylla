@@ -109,7 +109,8 @@ export function Reader(props: {
   const glossRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   // desktop: the translation opens as a card under (or above) the tapped word; phones: a bottom sheet
-  const [pos, setPos] = useState<{ top: number; left: number; above: boolean } | null>(null);
+  // docked: a short screen with too little room above and below the word, so the card is a full-height panel
+  const [pos, setPos] = useState<{ top: number; left: number; above: boolean; maxHeight: number; docked: boolean } | null>(null);
 
   // Escape or a click outside closes the translation; leaving the page stops reading aloud
   useEffect(() => {
@@ -205,10 +206,18 @@ export function Reader(props: {
   function placeNear(anchor: DOMRect | undefined) {
     const root = rootRef.current?.getBoundingClientRect();
     if (!anchor || !root || window.matchMedia("(max-width: 860px)").matches) return setPos(null);
-    const width = Math.min(380, root.width);
+    const width = Math.min(420, root.width);
     const left = Math.min(Math.max(anchor.left - root.left - 24, 0), root.width - width);
-    const above = window.innerHeight - anchor.bottom < 340 && anchor.top > 340;
-    setPos({ left, above, top: above ? anchor.top - root.top - 10 : anchor.bottom - root.top + 10 });
+    // the card has to fit in the window (small laptops): open on the side with more room and scroll inside it
+    const below = window.innerHeight - anchor.bottom - 20;
+    const room = anchor.top - 20;
+    if (Math.max(below, room) < 300) {
+      // dock it in the window as a tall panel, on the side away from the tapped word
+      const dockLeft = anchor.right > window.innerWidth - width - 40 ? Math.max(16, root.left - 8) : window.innerWidth - width - 16;
+      return setPos({ docked: true, above: false, left: dockLeft, top: 16, maxHeight: window.innerHeight - 32 });
+    }
+    const above = below < 420 && room > below;
+    setPos({ docked: false, left, above, maxHeight: above ? room : below, top: above ? anchor.top - root.top - 10 : anchor.bottom - root.top + 10 });
   }
 
   async function open(term: string, paragraph: string, key: string, anchor?: DOMRect) {
@@ -473,8 +482,8 @@ export function Reader(props: {
 
       {sel && (
           <div
-            className={`card gloss${pos ? " popover" : ""}${pos?.above ? " above" : ""}`}
-            style={pos ? { top: pos.top, left: pos.left } : undefined}
+            className={`card gloss${pos ? (pos.docked ? " docked" : " popover") : ""}${pos?.above ? " above" : ""}`}
+            style={pos ? { top: pos.top, left: pos.left, maxHeight: pos.maxHeight } : undefined}
             ref={glossRef}
             aria-live="polite"
             role="dialog"

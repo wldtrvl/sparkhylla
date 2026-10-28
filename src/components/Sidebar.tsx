@@ -129,6 +129,15 @@ export function Sidebar({ activeLang, isCoach, levels, newUpdates }: { activeLan
         <b>Språkhylla</b>
         <span>домашняя языковая библиотека</span>
       </Link>
+      {/* at the top, so it is visible on short laptop screens too */}
+      <div className="langswitch" aria-busy={pending}>
+        <button type="button" aria-pressed={activeLang === "no"} onClick={() => switchLang("no")}>
+          Norsk
+        </button>
+        <button type="button" aria-pressed={activeLang === "en"} onClick={() => switchLang("en")}>
+          English
+        </button>
+      </div>
       <nav className="nav" aria-label="Разделы">
         {items.map((it) => (
           <Link key={it.href} href={it.href} className={it.primary ? undefined : "nav-secondary"} aria-current={isActive(it.href) ? "page" : undefined}>
@@ -169,14 +178,6 @@ export function Sidebar({ activeLang, isCoach, levels, newUpdates }: { activeLan
         </>
       )}
       <div className="sidebar-foot">
-        <div className="langswitch" aria-busy={pending}>
-          <button type="button" aria-pressed={activeLang === "no"} onClick={() => switchLang("no")}>
-            Norsk
-          </button>
-          <button type="button" aria-pressed={activeLang === "en"} onClick={() => switchLang("en")}>
-            English
-          </button>
-        </div>
         <span style={{ opacity: 0.8 }}>{levels}</span>
         <Link href="/settings" style={{ color: "inherit", opacity: 0.8 }}>
           Настройки
